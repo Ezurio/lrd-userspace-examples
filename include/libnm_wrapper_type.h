@@ -32,6 +32,12 @@ typedef enum _LIBNM_WRAPPER_ERR {
 	LIBNM_WRAPPER_ERR_INVALID_VALUE
 } LIBNM_WRAPPER_ERR;
 
+typedef struct _LIBNM_WRAPPER_STATE_MONITOR_CALLBACK_ST
+{
+	int (*callback)(int state, int reason);
+	void *arg;
+}LIBNM_WRAPPER_STATE_MONITOR_CALLBACK_ST;
+
 static inline void safe_strncpy(char *dest, const char *src, int n)
 {
 	size_t i, m = src ? strlen(src) : 0;

@@ -228,7 +228,6 @@ int libnm_wrapper_connection_get_settings(libnm_wrapper_handle hd, const char *i
 	NMConnection *connection = NULL;
 	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
 
-
 	if(id)
 		connection = NM_CONNECTION(nm_client_get_connection_by_id(client, id));
 	else
@@ -243,7 +242,7 @@ int libnm_wrapper_connection_get_settings(libnm_wrapper_handle hd, const char *i
 /**
  * Get an array of settings from connections.
  * @param hd: library handle
- * @param connection:  on which interface
+ * @param interface:  on which interface
  * @param s : array to store general settings
  * @param size : the size of array
  *
@@ -271,6 +270,48 @@ int libnm_wrapper_connections_get_settings(libnm_wrapper_handle hd, const char *
 		}
 	}
 	return j;
+}
+
+/**
+ * Get active connection state.
+ * @param hd: library handle
+ * @param interface: on which device
+ * @param active: active connection id
+ *
+ * Returns: NMActiveConnectionState
+ */
+int libnm_wrapper_active_connection_get_state(libnm_wrapper_handle hd, const char *interface, const char *active)
+{
+	NMConnection *connection = NULL;
+	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
+
+	if(active)
+		connection = NM_CONNECTION(nm_client_get_connection_by_id(client, active));
+	else
+		connection = NM_CONNECTION(get_active_connection(client, interface));
+
+	return nm_active_connection_get_state(NM_ACTIVE_CONNECTION(connection));
+}
+
+/**
+ * Get active connection state reason.
+ * @param hd: library handle
+ * @param interface: on which device
+ * @param active: active connection id
+ *
+ * Returns: NMActiveConnectionStateReason
+ */
+int libnm_wrapper_active_connection_get_state_reason(libnm_wrapper_handle hd, const char *interface, const char *active)
+{
+	NMConnection *connection = NULL;
+	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
+
+	if(active)
+		connection = NM_CONNECTION(nm_client_get_connection_by_id(client, active));
+	else
+		connection = NM_CONNECTION(get_active_connection(client, interface));
+
+	return nm_active_connection_get_state_reason(NM_ACTIVE_CONNECTION(connection));
 }
 
 /**
@@ -1625,170 +1666,6 @@ int libnm_wrapper_access_point_get_active_settings(libnm_wrapper_handle hd, cons
 
 	get_access_point_settings(activeAp, ap);
 	return LIBNM_WRAPPER_ERR_SUCCESS;
-}
-/**@}*/
-
-/**
- * @name Device Management API
- */
-/**@{*/
-/**
- * Get device status.
- * @param hd: library handle
- * @param interface: which device
- * @param status: location to store status
- *
- * Returns: LIBNM_WRAPPER_ERR_SUCCESS if successful
- */
-int libnm_wrapper_device_get_status(libnm_wrapper_handle hd, const char *interface, NMWrapperDevice* status)
-{
-	NMDevice *dev = NULL;
-	const char *ptr = NULL;
-	GPtrArray *ptr_array = NULL;
-	NMIPConfig *s_ip = NULL;
-	int num_ips;
-	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
-
-	dev = nm_client_get_device_by_iface(client, interface);
-	if(!dev)
-		return LIBNM_WRAPPER_ERR_NO_HARDWARE;
-
-	status->autoconnect = false;
-	if( nm_device_get_autoconnect(dev))
-		status->autoconnect = true;
-
-	status->state = nm_device_get_state(dev);
-
-	ptr = nm_device_get_hw_address(dev);
-	if(ptr)
-		nm_utils_hwaddr_aton(ptr, status->mac, LIBNM_WRAPPER_MAX_MAC_ADDR_LEN);
-
-	s_ip = nm_device_get_ip4_config(dev);
-	if(s_ip)
-	{
-		num_ips = 0;
-		ptr_array = nm_ip_config_get_addresses(s_ip);
-		if(ptr_array)
-			num_ips = MIN(ptr_array->len, LIBNM_WRAPPER_MAX_ADDR_NUM);
-
-		for(int i=0; i < num_ips; i++)
-		{
-			NMIPAddress *a = g_ptr_array_index (ptr_array, i);
-			safe_strncpy(status->addr[i], nm_ip_address_get_address(a), LIBNM_WRAPPER_MAX_NAME_LEN);
-		}
-	}
-
-	s_ip = nm_device_get_ip6_config(dev);
-	if(s_ip)
-	{
-		num_ips = 0;
-		ptr_array = nm_ip_config_get_addresses(s_ip);
-		if(ptr_array)
-			num_ips = MIN(ptr_array->len, LIBNM_WRAPPER_MAX_ADDR_NUM);
-		for(int i=0; i < num_ips; i++)
-		{
-			NMIPAddress *a = g_ptr_array_index (ptr_array, i);
-			safe_strncpy(status->addr6[i], nm_ip_address_get_address(a), LIBNM_WRAPPER_MAX_NAME_LEN);
-		}
-	}
-
-	return LIBNM_WRAPPER_ERR_SUCCESS;
-}
-
-/**
- * Enable/disable device auto-start.
- * @param hd: library handle
- * @param interface: which device
- * @param autoconnect: whether to enable auto-start
- *
- * Returns: LIBNM_WRAPPER_ERR_SUCCESS if successful
- */
-int libnm_wrapper_device_set_autoconnect(libnm_wrapper_handle hd, const char *interface, bool autoconnect)
-{
-	NMDevice * dev = NULL;
-	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
-
-	dev = nm_client_get_device_by_iface(client, interface);
-	if(!dev)
-		return LIBNM_WRAPPER_ERR_NO_HARDWARE;
-
-	nm_device_set_autoconnect(dev, autoconnect);
-
-	return LIBNM_WRAPPER_ERR_SUCCESS;
-}
-
-/**
- * Get device auto-start flag.
- * @param hd: library handle
- * @param interface: which device
- * @param autoconnect: location to store auto-start
- *
- * Returns: LIBNM_WRAPPER_ERR_SUCCESS if successful
- */
-int libnm_wrapper_device_get_autoconnect(libnm_wrapper_handle hd, const char *interface, bool *autoconnect)
-{
-	NMDevice * dev = NULL;
-	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
-
-	dev = nm_client_get_device_by_iface(client, interface);
-	if(!dev)
-		return LIBNM_WRAPPER_ERR_NO_HARDWARE;
-
-	*autoconnect = false;
-	if( nm_device_get_autoconnect(dev))
-		*autoconnect = true;
-
-	return LIBNM_WRAPPER_ERR_SUCCESS;
-}
-
-/**
- * Disconnects the device if currently connected, and prevents the device from automatically connecting to networks until the next manual network connection request..
- * @param hd: library handle
- * @param interface: which device
- *
- * Returns: LIBNM_WRAPPER_ERR_SUCCESS if successful
- */
-int libnm_wrapper_device_disconnect(libnm_wrapper_handle hd, const char *interface)
-{
-	NMDevice * dev = NULL;
-	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
-
-	dev = nm_client_get_device_by_iface(client, interface);
-	if(TRUE == nm_device_disconnect(dev, NULL, NULL))
-		return LIBNM_WRAPPER_ERR_SUCCESS;
-	return LIBNM_WRAPPER_ERR_FAIL;
-}
-
-/**
- * Enables or disables wireless devices.
- * @param hd: library handle
- * @param interface: which device
- *
- * Returns: LIBNM_WRAPPER_ERR_SUCCESS if successful
- */
-int libnm_wrapper_device_enable_wireless(libnm_wrapper_handle hd , bool enable)
-{
-	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
-	nm_client_wireless_set_enabled(client, enable);
-	return LIBNM_WRAPPER_ERR_SUCCESS;
-}
-
-/**
- * Get number of connections on interface.
- * @param hd: library handle
- * @param interface: which interface
- *
- * Returns: number of connections
- */
-int libnm_wrapper_device_get_connection_num(libnm_wrapper_handle hd, char *interface)
-{
-	NMDevice * dev = NULL;
-	const GPtrArray *connections;
-	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
-
-	dev = nm_client_get_device_by_iface(client, interface);
-	connections = nm_device_get_available_connections(dev);
-	return connections->len;
 }
 /**@}*/
 

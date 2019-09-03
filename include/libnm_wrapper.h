@@ -252,13 +252,33 @@ int libnm_wrapper_connection_get_settings(libnm_wrapper_handle hd, const char *i
 /**
  * Get an array of settings from connections.
  * @param hd: library handle
- * @param connection:  on which interface
+ * @param interface:  on which interface
  * @param s : array to store general settings
  * @param size : the size of array
  *
  * Returns: number of connections actually parsed
  */
 int libnm_wrapper_connections_get_settings(libnm_wrapper_handle hd, const char *interface, NMWrapperSettings *s, int size);
+
+/**
+ * Get active connection state.
+ * @param hd: library handle
+ * @param interface: on which device
+ * @param active: active connection id
+ *
+ * Returns: NMActiveConnectionState
+ */
+int libnm_wrapper_active_connection_get_state(libnm_wrapper_handle hd, const char *interface, const char *active);
+
+/**
+ * Get active connection state reason.
+ * @param hd: library handle
+ * @param interface: on which device
+ * @param active: active connection id
+ *
+ * Returns: NMActiveConnectionStateReason
+ */
+int libnm_wrapper_active_connection_get_state_reason(libnm_wrapper_handle hd, const char *interface, const char *active);
 
 /**
  * Delete a connection by id.
@@ -485,6 +505,35 @@ int libnm_wrapper_device_enable_wireless(libnm_wrapper_handle hd , bool enable);
  * Returns: number of connections
  */
 int libnm_wrapper_device_get_connection_num(libnm_wrapper_handle hd, char *interface);
+
+/**
+ * Get device state.
+ * @param hd: library handle
+ * @param interface: on which device
+ *
+ * Returns: NMDeviceState
+ */
+int libnm_wrapper_device_get_state(libnm_wrapper_handle hd, const char *interface);
+
+/**
+ * Get device state reason.
+ * @param hd: library handle
+ * @param interface: on which device
+ *
+ * Returns: NMDeviceStateReason
+ */
+int libnm_wrapper_device_get_state_reason(libnm_wrapper_handle hd, const char *interface);
+
+/**
+ * Monitor device state .
+ * @param hd: library handle
+ * @param interface: on which device
+ * @param user: user callback function
+ * Returns: LIBNM_WRAPPER_ERR_SUCCESS if successful
+ */
+int libnm_wrapper_device_state_monitor(libnm_wrapper_handle hd, const char *interface,
+									LIBNM_WRAPPER_STATE_MONITOR_CALLBACK_ST *user);
+
 /**@}*/
 
 
