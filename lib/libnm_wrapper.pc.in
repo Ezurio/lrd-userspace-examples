@@ -3,9 +3,9 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: libnm_sdk
+Name: libnm_wrapper
 Description: Convenience library for clients of NetworkManager
 Version: @VERSION@
 Requires:
 Cflags: -I${includedir}/lrd
-Libs: -L${libdir} -lnm_sdk
+Libs: -L${libdir} -lnm_wrapper

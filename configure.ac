@@ -47,7 +47,7 @@ LT_INIT
 AC_CONFIG_FILES([
 Makefile
 lib/Makefile
-lib/libnm_sdk.pc
+lib/libnm_wrapper.pc
 examples/Makefile
 include/Makefile
 ])

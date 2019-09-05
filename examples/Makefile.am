@@ -11,7 +11,7 @@ nm_device_status_CPPFLAGS = \
 	$(GIO_CFLAGS) \
 	$(NM_CFLAGS)
 nm_device_status_LDADD = \
-	$(top_builddir)/lib/libnm_sdk.la \
+	$(top_builddir)/lib/libnm_wrapper.la \
 	$(GLIB_LIBS) \
 	$(GIO_LIBS) \
 	$(NM_LIBS)
@@ -23,7 +23,7 @@ nm_device_status_monitor_CPPFLAGS = \
 	$(GIO_CFLAGS) \
 	$(NM_CFLAGS)
 nm_device_status_monitor_LDADD = \
-	$(top_builddir)/lib/libnm_sdk.la \
+	$(top_builddir)/lib/libnm_wrapper.la \
 	$(GLIB_LIBS) \
 	$(GIO_LIBS) \
 	$(NM_LIBS)
