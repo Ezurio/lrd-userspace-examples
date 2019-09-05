@@ -1746,9 +1746,6 @@ int libnm_wrapper_ipv4_set_method(libnm_wrapper_handle hd, const char *id, const
 	NMSettingIPConfig *s_ip4;
 	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
 
-	if(!value || strlen(value))
-		return LIBNM_WRAPPER_ERR_INVALID_PARAMETER;
-
 	//"manual" will be set when ip address is set;
 	if(!strncmp(value, NM_SETTING_IP4_CONFIG_METHOD_MANUAL, strlen(NM_SETTING_IP4_CONFIG_METHOD_MANUAL)))
 		return LIBNM_WRAPPER_ERR_SUCCESS;
