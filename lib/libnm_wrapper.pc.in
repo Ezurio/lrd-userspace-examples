@@ -7,5 +7,5 @@ Name: libnm_wrapper
 Description: Convenience library for clients of NetworkManager
 Version: @VERSION@
 Requires:
-Cflags: -I${includedir}/lrd
+Cflags: -I${includedir}/
 Libs: -L${libdir} -lnm_wrapper
