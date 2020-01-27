@@ -27,11 +27,9 @@
 
 static int fd = -1;
 static int dryrun = 1;
-static int msg_fd = -1;
 
 static PyObject* prepare_fw_update(PyObject * self, PyObject * args)
 {
-	int flag;
 
 	if (!PyArg_ParseTuple(args, "i", &dryrun)) {
 		return NULL;
@@ -41,14 +39,6 @@ static PyObject* prepare_fw_update(PyObject * self, PyObject * args)
 		ipc_end(fd);
 
 	fd = ipc_inst_start_ext(SOURCE_UNKNOWN, 0, NULL, dryrun);
-
-	if(msg_fd > 0)
-		close(msg_fd);
-
-	msg_fd = progress_ipc_connect(false);
-	flag = fcntl(msg_fd, F_GETFL, 0);
-	flag |= O_NONBLOCK;
-	fcntl(msg_fd, F_SETFL, flag);
 
     return Py_BuildValue("i", fd);
 }
@@ -79,9 +69,10 @@ static PyObject* get_fw_update_state(PyObject * self, PyObject *Py_UNUSED(ignore
 	struct progress_msg msg;
 	fd_set rd_set;
 	struct timeval timeout;
-	int max_fd = msg_fd;
 
-	if(msg_fd < 0) Py_RETURN_NONE;
+	int msg_fd = progress_ipc_connect(false);
+	if(msg_fd < 0)
+		Py_RETURN_NONE;
 
 	while(1){
 
@@ -92,8 +83,8 @@ static PyObject* get_fw_update_state(PyObject * self, PyObject *Py_UNUSED(ignore
 		timeout.tv_sec = 0;
 		timeout.tv_usec = 200000;
 
-		rc = select (max_fd + 1, &rd_set, NULL, NULL, &timeout);
-		if(rc > 0 && FD_ISSET(msg_fd, &rd_set)){
+		rc = select (msg_fd + 1, &rd_set, NULL, NULL, &timeout);
+		if(rc > 0){
 			read(msg_fd, &msg, sizeof(msg));
 			valid = 1;
 			continue;
@@ -101,6 +92,8 @@ static PyObject* get_fw_update_state(PyObject * self, PyObject *Py_UNUSED(ignore
 
 		break;
 	}
+
+	ipc_end(msg_fd);
 
 	if(!valid) Py_RETURN_NONE;
 	/* Build the output tuple */
