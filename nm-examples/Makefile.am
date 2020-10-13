@@ -1,17 +1,15 @@
 ACLOCAL_AMFLAGS = -I m4
 
-if BUILD_NM_EXAMPLES
-bin_PROGRAMS = nm_device_status nm_device_status_monitor
 lib_LTLIBRARIES = libnm_wrapper.la
+bin_PROGRAMS = nm_device_status nm_device_status_monitor
+
+pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libnm_wrapper.pc
-endif
 
 noinst_HEADERS = libnm_wrapper_internal.h
 libnm_wrapper_la_CFLAGS = $(GLIB_CFLAGS) $(NM_CFLAGS) -I../include/
 libnm_wrapper_la_LDFLAGS = -version-info 0:0:0
 libnm_wrapper_la_SOURCES = libnm_wrapper.c libnm_wrapper_device.c
-
-pkgconfigdir = $(libdir)/pkgconfig
 
 nm_device_status_SOURCES = nm_device_status.c
 nm_device_status_CFLAGS = \
