@@ -58,6 +58,16 @@ else
 fi
 AM_CONDITIONAL(BUILD_NL_EXAMPLES, test "${enable_nl_examples}" = "yes")
 
+AC_ARG_ENABLE(cmux,
+              AS_HELP_STRING([--enable-cmux], [Build cmux]),
+              [enable_cmux=${enableval}], [enable_cmux=no])
+if (test "${enable_cmux}" = "yes"); then
+	AC_DEFINE(BUILD_CMUX, 1, [Define if you want to build cmux])
+else
+	AC_DEFINE(BUILD_CMUX, 0, [Define if you want to build cmux])
+fi
+AM_CONDITIONAL(BUILD_CMUX, test "${enable_cmux}" = "yes")
+
 LT_INIT
 
 AC_CONFIG_FILES([
@@ -65,6 +75,7 @@ Makefile
 nl-examples/Makefile
 nm-examples/Makefile
 nm-examples/libnm_wrapper.pc
+cmux/Makefile
 include/Makefile
 ])
 
