@@ -36,7 +36,7 @@ OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 #endif
 
 #define SERIAL_PORT	"/dev/ttyS4"
-#define DEFAULT_SPEED B921600	//default baudrate
+#define DEFAULT_SPEED B3000000	//default baudrate
 #define MTU 1428
 
 void signal_handler(int signum) {
