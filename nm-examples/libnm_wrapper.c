@@ -517,31 +517,8 @@ int libnm_wrapper_activate_connection(libnm_wrapper_handle hd, const char *inter
 	if(!dev)
 		return LIBNM_WRAPPER_ERR_NO_HARDWARE;
 
-	//wifi connection need specifi_object to be set
-	if(wifi)
-	{
-		int i = 0;
-		NMSettingWireless *s_wifi = nm_connection_get_setting_wireless(NM_CONNECTION(remote));
-		GBytes *ssid = nm_setting_wireless_get_ssid(s_wifi);
-		const GPtrArray *aps  = nm_device_wifi_get_access_points (NM_DEVICE_WIFI (dev));
-		for (i = 0; i < aps->len; i++)
-		{
-			NMAccessPoint *ap = g_ptr_array_index (aps, i);
-			GBytes * ap_ssid = nm_access_point_get_ssid(ap);
-			if(!ap_ssid)
-				continue;
-			if(!g_bytes_compare(ap_ssid, ssid))
-			{
-				specific_object = nm_object_get_path(NM_OBJECT (ap));
-				break;
-			}
-		}
 
-		if(i == aps->len)
-			return LIBNM_WRAPPER_ERR_FAIL;
-	}
-
-	activate_connection(client, NM_CONNECTION(remote), dev, specific_object, &ret);
+	activate_connection(client, NM_CONNECTION(remote), dev, NULL, &ret);
 	return ret;
 }
 
