@@ -1045,8 +1045,9 @@ static void cert_to_utf8_path(int scheme, char *cert, char *outbuf, int len)
 
 		outbuf[0] = '\0';
 		file = g_filename_to_utf8(cert, -1, &bytes_read, &bytes_written, NULL);
+
 		if(file)
-			snprintf(outbuf, len, "file://%s", file);
+			snprintf(outbuf, len, "%s", file);
 	}
 }
 
@@ -1063,6 +1064,7 @@ static int set_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 	int ret = LIBNM_WRAPPER_ERR_FAIL;
 	char buf[LIBNM_WRAPPER_MAX_PATH_LEN];
 	NMSetting8021x *s_8021x = nm_connection_get_setting_802_1x(connection);
+	GError *err = NULL;
 
 	if(!s_8021x)
 	{
@@ -1077,16 +1079,30 @@ static int set_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 
 	if(strlen(wxs->ca_cert))
 	{
+
 		cert_to_utf8_path(wxs->ca_cert_scheme, wxs->ca_cert, buf, LIBNM_WRAPPER_MAX_PATH_LEN);
-		if(FALSE == nm_setting_802_1x_set_ca_cert(s_8021x, buf, wxs->ca_cert_scheme, NULL, NULL))
+
+		if(FALSE == nm_setting_802_1x_set_ca_cert(s_8021x, buf, wxs->ca_cert_scheme, NULL, &err)){
+			if(err)
+			{
+				g_error_free (err);
+				return LIBNM_WRAPPER_ERR_INVALID_CONFIG;
+			}
 			return ret;
+		}
 	}
 
 	if(strlen(wxs->cli_cert))
 	{
 		cert_to_utf8_path(wxs->cli_cert_scheme, wxs->cli_cert, buf, LIBNM_WRAPPER_MAX_PATH_LEN);
-		if(FALSE == nm_setting_802_1x_set_client_cert(s_8021x, buf, wxs->cli_cert_scheme, NULL, NULL))
+		if(FALSE == nm_setting_802_1x_set_client_cert(s_8021x, buf, wxs->cli_cert_scheme, NULL, &err)){
+			if(err)
+			{
+				g_error_free (err);
+				return LIBNM_WRAPPER_ERR_INVALID_CONFIG;
+			}
 			return ret;
+		}
 	}
 
 	if(strlen(wxs->p2_ca_cert))
@@ -1106,8 +1122,14 @@ static int set_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 	if(strlen(wxs->private_key))
 	{
 		cert_to_utf8_path(wxs->private_key_scheme, wxs->private_key, buf, LIBNM_WRAPPER_MAX_PATH_LEN);
-		if(FALSE == nm_setting_802_1x_set_private_key(s_8021x, buf, wxs->private_key_password, wxs->private_key_scheme, NULL, NULL))
+		if(FALSE == nm_setting_802_1x_set_private_key(s_8021x, buf, wxs->private_key_password, wxs->private_key_scheme, NULL, &err)){
+			if(err)
+			{
+				g_error_free (err);
+				return LIBNM_WRAPPER_ERR_INVALID_CONFIG;
+			}
 			return ret;
+		}
 	}
 
 	if(strlen(wxs->p2_private_key))
@@ -1186,7 +1208,7 @@ static int set_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 		g_object_set(s_8021x, NM_SETTING_802_1X_ANONYMOUS_IDENTITY, wxs->anonymous, NULL);
 
 	if(strlen(wxs->password))
-		g_object_set(s_8021x, NM_SETTING_802_1X_PASSWORD, wxs->identity, NULL);
+		g_object_set(s_8021x, NM_SETTING_802_1X_PASSWORD, wxs->password, NULL);
 
 	if(strlen(wxs->p1_peapver))
 	{
