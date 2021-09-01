@@ -475,16 +475,7 @@ static void activated_cb (GObject *client, GAsyncResult *result, gpointer user_d
 	}
 	else
 	{
-		NMActiveConnectionState state = nm_active_connection_get_state (st->active);
-		if (state == NM_ACTIVE_CONNECTION_STATE_ACTIVATED)
-		{
-			activate_finish(st, LIBNM_WRAPPER_ERR_SUCCESS, false);
-		}
-		else
-		{
-			g_signal_connect (st->active, "state-changed", G_CALLBACK (active_connection_state_cb), st);
-			st->g_timer_id = g_timeout_add_seconds(timeout, activate_connection_timeout_cb, st);
-		}
+		activate_finish(st, LIBNM_WRAPPER_ERR_SUCCESS, false);
 	}
 }
 
