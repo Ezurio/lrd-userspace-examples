@@ -22,6 +22,7 @@
 #include <sys/socket.h>
 #include "libnm_wrapper_internal.h"
 
+#define ADDR_LEN 16
 
 /**
  * This file provides C APIs to manage network devices and connections based on NetworkManager.
@@ -1682,6 +1683,52 @@ int libnm_wrapper_ipv4_get_route_information(libnm_wrapper_handle hd, const char
 
 	return size;
 }
+
+int libnm_wrapper_get_active_ipv4_addresses(libnm_wrapper_handle hd, const char *interface, char *ip, int ip_len, char *gateway, int gateway_len, char *subnet, int subnet_len, char *dns_1, int dns1_len, char *dns_2, int dns2_len)
+{
+	NMDevice *dev = NULL;
+	NMIPConfig *ip4;
+	NMActiveConnection *active = NULL;
+	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
+	dev = nm_client_get_device_by_iface(client, interface);
+	active = nm_device_get_active_connection(dev);
+
+	if(!active)
+		return LIBNM_WRAPPER_ERR_INVALID_PARAMETER;
+
+	ip4 = nm_active_connection_get_ip4_config (active);
+	if(!ip4)
+		return LIBNM_WRAPPER_ERR_INVALID_PARAMETER;
+
+	const GPtrArray *addresses;
+	addresses = nm_ip_config_get_addresses(ip4);
+	NMIPAddress * nm_ip = addresses->pdata[0];
+	if (addresses->pdata[0] && ip != NULL){
+		const char * addr = nm_ip_address_get_address(nm_ip);
+		safe_strncpy(ip,addr,ip_len);
+	}
+
+	const char * active_gateway = nm_ip_config_get_gateway(ip4);
+
+	if (strlen(active_gateway) > 0 && gateway != NULL)
+		safe_strncpy(gateway,active_gateway,gateway_len);
+
+	const char *const* active_dns_addresses = nm_ip_config_get_nameservers(ip4);
+
+	if (active_dns_addresses[0] && dns_1 != NULL)
+		safe_strncpy(dns_1,active_dns_addresses[0],dns1_len);
+
+	if (active_dns_addresses[1] && dns_2 != NULL )
+		safe_strncpy(dns_2,active_dns_addresses[1],dns2_len);
+
+	NMDhcpConfig *dhcp4 = nm_active_connection_get_dhcp4_config(active);
+	const char *subnet_mask = nm_dhcp_config_get_one_option(dhcp4, "subnet_mask");
+	if (strlen(subnet_mask) > 0 && subnet != NULL)
+		safe_strncpy(subnet,subnet_mask,subnet_len);
+
+	return LIBNM_WRAPPER_ERR_SUCCESS;
+}
+
 
 int libnm_wrapper_ipv4_get_dhcp_information(libnm_wrapper_handle hd, const char *interface, const int size, const char *options[], const int len, char val[size][len])
 {

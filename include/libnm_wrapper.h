@@ -555,7 +555,7 @@ int libnm_wrapper_ipv4_get_dns(libnm_wrapper_handle hd, const char *id, char *ad
 int libnm_wrapper_ipv4_clear_address(libnm_wrapper_handle hd , const char *id);
 int libnm_wrapper_ipv4_get_dhcp_information(libnm_wrapper_handle hd, const char *interface, const int size, const char *options[], const int len, char val[size][len]);
 int libnm_wrapper_ipv4_get_route_information(libnm_wrapper_handle hd, const char *interface, const char *id, NMWrapperIPRoute *route, int size);
-
+int libnm_wrapper_get_active_ipv4_addresses(libnm_wrapper_handle hd, const char *interface, char *ip, int ip_len, char *gateway, int gateway_len, char *subnet, int subnet_len, char *dns_1, int dns1_len, char *dns_2, int dns2_len);
 /**
  * IPv6 Management API
  */
