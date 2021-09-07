@@ -1605,6 +1605,7 @@ void static get_access_point_settings(NMAccessPoint *ap, NMWrapperAccessPoint *d
 	dst->strength = nm_access_point_get_strength(ap);
 	dst->wpa_flags = nm_access_point_get_wpa_flags(ap);
 	dst->rsn_flags = nm_access_point_get_rsn_flags(ap);
+	dst->flags = nm_access_point_get_flags(ap);
 }
 
 /**
