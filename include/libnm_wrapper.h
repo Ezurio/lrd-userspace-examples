@@ -27,6 +27,7 @@ typedef struct _NMWrapperAccessPoint {
 	unsigned int mode;
 	unsigned int frequency;
 	unsigned int strength;
+	unsigned int flags;
 	unsigned int wpa_flags;
 	unsigned int rsn_flags;
 	char    ssid[LIBNM_WRAPPER_MAX_NAME_LEN];
