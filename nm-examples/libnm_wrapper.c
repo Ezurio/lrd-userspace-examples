@@ -58,11 +58,23 @@ libnm_wrapper_handle libnm_wrapper_init()
  */
 void libnm_wrapper_destroy(libnm_wrapper_handle hd)
 {
+	int i;
+
 	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
 	if(!client)
 		return;
 
+	// Need to process any events that are still on the main loop so cleanup is successful
+	// We should have processed all events we're interested in already but there are many cases
+	// where we have never run the loop at all so internal events have not been processed
+	// Typically only 1 event is still pending, fail-safe just in case
+	for (i=0; i<10; i++) {
+		if (!g_main_context_iteration(NULL, FALSE))
+			break;
+	}
+
 	g_object_unref (client);
+	free(hd);
 }
 /**@}*/
 
