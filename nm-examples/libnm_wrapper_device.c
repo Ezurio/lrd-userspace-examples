@@ -135,7 +135,6 @@ int libnm_wrapper_device_disconnect(libnm_wrapper_handle hd, const char *interfa
 /**
  * Enables or disables wireless devices.
  * @param hd: library handle
- * @param interface: which device
  *
  * Returns: LIBNM_WRAPPER_ERR_SUCCESS if successful
  */
@@ -144,6 +143,18 @@ int libnm_wrapper_device_enable_wireless(libnm_wrapper_handle hd , bool enable)
 	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
 	nm_client_wireless_set_enabled(client, enable);
 	return LIBNM_WRAPPER_ERR_SUCCESS;
+}
+
+/**
+ * Determines whether wireless devices are enabled
+ * @param hd: library handle
+ *
+ * Returns: non-zero if wireless devices are enabled
+ */
+int libnm_wrapper_device_is_wireless_enabled(libnm_wrapper_handle hd)
+{
+	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
+	return nm_client_wireless_get_enabled(client);
 }
 
 /**
