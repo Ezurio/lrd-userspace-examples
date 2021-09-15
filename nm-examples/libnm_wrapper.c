@@ -1741,6 +1741,11 @@ int libnm_wrapper_get_active_ipv4_addresses(libnm_wrapper_handle hd, const char 
 	if (addresses->pdata[0] && ip != NULL){
 		const char * addr = nm_ip_address_get_address(nm_ip);
 		safe_strncpy(ip,addr,ip_len);
+		int prefix = nm_ip_address_get_prefix (nm_ip);
+		if (subnet != NULL && prefix > 0 ) {
+			unsigned long mask = (0xFFFFFFFF << (32 - prefix)) & 0xFFFFFFFF;
+			snprintf(subnet, subnet_len, "%lu.%lu.%lu.%lu\n", mask >> 24, (mask >> 16) & 0xFF, (mask >> 8) & 0xFF, mask & 0xFF);
+		}
 	}
 
 	const char * active_gateway = nm_ip_config_get_gateway(ip4);
@@ -1755,11 +1760,6 @@ int libnm_wrapper_get_active_ipv4_addresses(libnm_wrapper_handle hd, const char 
 
 	if (active_dns_addresses[1] && dns_2 != NULL )
 		safe_strncpy(dns_2,active_dns_addresses[1],dns2_len);
-
-	NMDhcpConfig *dhcp4 = nm_active_connection_get_dhcp4_config(active);
-	const char *subnet_mask = nm_dhcp_config_get_one_option(dhcp4, "subnet_mask");
-	if (strlen(subnet_mask) > 0 && subnet != NULL)
-		safe_strncpy(subnet,subnet_mask,subnet_len);
 
 	return LIBNM_WRAPPER_ERR_SUCCESS;
 }
