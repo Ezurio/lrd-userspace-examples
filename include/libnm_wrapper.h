@@ -492,11 +492,18 @@ int libnm_wrapper_device_disconnect(libnm_wrapper_handle hd, const char *interfa
 /**
  * Enables or disables wireless devices.
  * @param hd: library handle
- * @param interface: which device
  *
  * Returns: SDCERR_SUCCESS if successful
  */
 int libnm_wrapper_device_enable_wireless(libnm_wrapper_handle hd , bool enable);
+
+/**
+ * Determines whether wireless devices are enabled
+ * @param hd: library handle
+ *
+ * Returns: non-zero if wireless devices are enabled
+ */
+int libnm_wrapper_device_is_wireless_enabled(libnm_wrapper_handle hd);
 
 /**
  * Get number of connections on interface.
