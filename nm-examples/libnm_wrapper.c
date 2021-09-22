@@ -1060,6 +1060,7 @@ static void cert_to_utf8_path(int scheme, char *cert, char *outbuf, int len)
 
 		if(file)
 			snprintf(outbuf, len, "%s", file);
+		g_free(file);
 	}
 }
 
