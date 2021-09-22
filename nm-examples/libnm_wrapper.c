@@ -650,7 +650,7 @@ static void get_wireless_settings(NMConnection *connection, NMWrapperWirelessSet
 	ws->max_scan_interval = nm_setting_wireless_get_max_scan_interval(s_wifi);
 
 	tmp = nm_setting_wireless_get_ssid(s_wifi);
-	gbytes_to_string(tmp, ws->ssid, LIBNM_WRAPPER_MAX_NAME_LEN);
+	ssid_gbytes_to_string(tmp, ws->ssid, LIBNM_WRAPPER_MAX_NAME_LEN);
 
 	ptr = nm_setting_wireless_get_mode(s_wifi);
 	safe_strncpy(ws->mode, ptr, LIBNM_WRAPPER_MAX_NAME_LEN);
@@ -797,11 +797,6 @@ static int get_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 		ptr = nm_setting_802_1x_get_ca_cert_path(s_8021x);
 		safe_strncpy(wxs->ca_cert, ptr, LIBNM_WRAPPER_MAX_PATH_LEN);
 	}
-	else if(wxs->ca_cert_scheme == NM_SETTING_802_1X_CK_SCHEME_BLOB)
-	{
-		bptr = nm_setting_802_1x_get_ca_cert_blob(s_8021x);
-		gbytes_to_string(bptr, wxs->ca_cert, LIBNM_WRAPPER_MAX_PATH_LEN);
-	}
 	else
 	{
 		safe_strncpy(wxs->ca_cert, NULL, LIBNM_WRAPPER_MAX_PATH_LEN);
@@ -817,11 +812,6 @@ static int get_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 	{
 		ptr = nm_setting_802_1x_get_client_cert_path(s_8021x);
 		safe_strncpy(wxs->cli_cert, ptr, LIBNM_WRAPPER_MAX_PATH_LEN);
-	}
-	else if(wxs->cli_cert_scheme == NM_SETTING_802_1X_CK_SCHEME_BLOB)
-	{
-		bptr = nm_setting_802_1x_get_client_cert_blob(s_8021x);
-		gbytes_to_string(bptr, wxs->cli_cert, LIBNM_WRAPPER_MAX_PATH_LEN);
 	}
 	else
 	{
@@ -890,11 +880,6 @@ static int get_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 		ptr = nm_setting_802_1x_get_phase2_ca_cert_path(s_8021x);
 		safe_strncpy(wxs->p2_ca_cert, ptr, LIBNM_WRAPPER_MAX_PATH_LEN);
 	}
-	else if(wxs->p2_ca_cert_scheme == NM_SETTING_802_1X_CK_SCHEME_BLOB)
-	{
-		bptr = nm_setting_802_1x_get_phase2_ca_cert_blob(s_8021x);
-		gbytes_to_string(bptr, wxs->p2_ca_cert, LIBNM_WRAPPER_MAX_PATH_LEN);
-	}
 	else
 	{
 		safe_strncpy(wxs->p2_ca_cert, NULL, LIBNM_WRAPPER_MAX_PATH_LEN);
@@ -911,11 +896,6 @@ static int get_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 		ptr = nm_setting_802_1x_get_phase2_client_cert_path(s_8021x);
 		safe_strncpy(wxs->p2_cli_cert, ptr, LIBNM_WRAPPER_MAX_PATH_LEN);
 	}
-	else if(wxs->p2_cli_cert_scheme == NM_SETTING_802_1X_CK_SCHEME_BLOB)
-	{
-		bptr = nm_setting_802_1x_get_phase2_client_cert_blob(s_8021x);
-		gbytes_to_string(bptr, wxs->p2_cli_cert, LIBNM_WRAPPER_MAX_PATH_LEN);
-	}
 	else
 	{
 		safe_strncpy(wxs->p2_cli_cert, NULL, LIBNM_WRAPPER_MAX_PATH_LEN);
@@ -929,11 +909,6 @@ static int get_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 		ptr = nm_setting_802_1x_get_phase2_private_key_path(s_8021x);
 		safe_strncpy(wxs->p2_private_key, ptr, LIBNM_WRAPPER_MAX_PATH_LEN);
 	}
-	else if(wxs->p2_private_key_scheme == NM_SETTING_802_1X_CK_SCHEME_BLOB)
-	{
-		bptr = nm_setting_802_1x_get_phase2_private_key_blob(s_8021x);
-		gbytes_to_string(bptr, wxs->p2_private_key, LIBNM_WRAPPER_MAX_PATH_LEN);
-	}
 	else
 	{
 		safe_strncpy(wxs->p2_private_key, NULL, LIBNM_WRAPPER_MAX_PATH_LEN);
@@ -946,11 +921,6 @@ static int get_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 	{
 		ptr = nm_setting_802_1x_get_private_key_path(s_8021x);
 		safe_strncpy(wxs->private_key, ptr, LIBNM_WRAPPER_MAX_PATH_LEN);
-	}
-	else if(wxs->private_key_scheme == NM_SETTING_802_1X_CK_SCHEME_BLOB)
-	{
-		bptr = nm_setting_802_1x_get_private_key_blob(s_8021x);
-		gbytes_to_string(bptr, wxs->private_key, LIBNM_WRAPPER_MAX_PATH_LEN);
 	}
 	else
 	{
@@ -1607,7 +1577,7 @@ void static get_access_point_settings(NMAccessPoint *ap, NMWrapperAccessPoint *d
 	const char *bssid = NULL;
 
 	tmp = nm_access_point_get_ssid(ap);
-	gbytes_to_string(tmp, dst->ssid, LIBNM_WRAPPER_MAX_NAME_LEN);
+	ssid_gbytes_to_string(tmp, dst->ssid, LIBNM_WRAPPER_MAX_NAME_LEN);
 
 	bssid = nm_access_point_get_bssid(ap);
 	if(bssid)
