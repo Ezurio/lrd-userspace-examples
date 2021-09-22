@@ -10,7 +10,7 @@ extern "C" {
 #include <libnm/NetworkManager.h>
 #include "libnm_wrapper.h"
 
-static inline void gbytes_to_string(GBytes *src, char *dst, int len)
+static inline void ssid_gbytes_to_string(GBytes *src, char *dst, int len)
 {
 	const char *ptr = nm_utils_ssid_to_utf8(g_bytes_get_data(src, NULL),
 			g_bytes_get_size(src));
