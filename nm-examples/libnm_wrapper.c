@@ -24,6 +24,7 @@
 
 #define ADDR_LEN 16
 
+libnm_wrapper_handle_st *st = NULL;
 /**
  * This file provides C APIs to manage network devices and connections based on NetworkManager.
  */
@@ -43,11 +44,11 @@
  */
 libnm_wrapper_handle libnm_wrapper_init()
 {
-	libnm_wrapper_handle_st *st = malloc(sizeof(libnm_wrapper_handle_st));
-	if(!st)
-		return NULL;
+	if(!st) {
+		st = malloc(sizeof(libnm_wrapper_handle_st));
+		st->client = nm_client_new(NULL, NULL);
+	} 
 
-	st->client = nm_client_new(NULL, NULL);
 	return (libnm_wrapper_handle) st;
 }
 
@@ -73,8 +74,8 @@ void libnm_wrapper_destroy(libnm_wrapper_handle hd)
 			break;
 	}
 
-	g_object_unref (client);
-	free(hd);
+	//g_object_unref (client);
+	//free(hd);
 }
 /**@}*/
 
@@ -99,9 +100,9 @@ static void added_cb(GObject *client, GAsyncResult *result, gpointer user_data)
 {
 	GError *error = NULL;
 	NMRemoteConnection *remote;
-	libnm_wrapper_cb_st *st = (libnm_wrapper_cb_st *)user_data;
-	GMainLoop *loop = st->loop;
-	int *ret = st->result;
+	libnm_wrapper_cb_st *temp = (libnm_wrapper_cb_st *)user_data;
+	GMainLoop *loop = temp->loop;
+	int *ret = temp->result;
 
 	remote = nm_client_add_connection_finish (NM_CLIENT (client), result, &error);
 	if (error) {
@@ -111,7 +112,7 @@ static void added_cb(GObject *client, GAsyncResult *result, gpointer user_data)
 		*ret = LIBNM_WRAPPER_ERR_SUCCESS;
 		g_object_unref (remote);
 	}
-	g_free(st);
+	g_free(temp);
 	g_main_loop_quit(loop);
 }
 
@@ -126,11 +127,11 @@ static void added_cb(GObject *client, GAsyncResult *result, gpointer user_data)
 static void add_connection(NMClient *client, NMConnection *connection, int *result)
 {
 	GMainLoop *loop = g_main_loop_new (NULL, FALSE);
-	libnm_wrapper_cb_st *st = g_malloc0(sizeof(libnm_wrapper_cb_st));
+	libnm_wrapper_cb_st *temp = g_malloc0(sizeof(libnm_wrapper_cb_st));
 
-	st->loop = loop;
-	st->result = result;
-	nm_client_add_connection_async(client, connection, TRUE, NULL, added_cb, st);
+	temp->loop = loop;
+	temp->result = result;
+	nm_client_add_connection_async(client, connection, TRUE, NULL, added_cb, temp);
 	g_main_loop_run (loop);
 	g_object_unref (connection);
 }
@@ -410,26 +411,26 @@ static void active_connection_state_cb (NMActiveConnection *active,
 								NMActiveConnectionStateReason reason,
 								gpointer user_data);
 
-static void activate_finish(libnm_wrapper_cb_st *st, int result, bool fromTimer)
+static void activate_finish(libnm_wrapper_cb_st *temp, int result, bool fromTimer)
 {
-	GMainLoop *loop = st->loop;
-	int *ret = st->result;
+	GMainLoop *loop = temp->loop;
+	int *ret = temp->result;
 
 	*ret = result;
 
-	if(st->active)
+	if(temp->active)
 	{
 		if(fromTimer)
-			g_signal_handlers_disconnect_by_func(st->active, G_CALLBACK(active_connection_state_cb), st);
+			g_signal_handlers_disconnect_by_func(temp->active, G_CALLBACK(active_connection_state_cb), temp);
 
-		g_object_unref (st->active);
+		g_object_unref (temp->active);
 	}
 
-	if(!fromTimer && st->g_timer_id > 0)
-		g_source_remove(st->g_timer_id);
+	if(!fromTimer && temp->g_timer_id > 0)
+		g_source_remove(temp->g_timer_id);
 
-	g_free(st);
-	st = NULL;
+	g_free(temp);
+	temp = NULL;
 
 	g_main_loop_quit(loop);
 }
@@ -439,19 +440,19 @@ static void active_connection_state_cb (NMActiveConnection *active,
 								NMActiveConnectionStateReason reason,
 								gpointer user_data)
 {
-	libnm_wrapper_cb_st *st = (libnm_wrapper_cb_st *)user_data;
+	libnm_wrapper_cb_st *temp = (libnm_wrapper_cb_st *)user_data;
 
 	switch(state)
 	{
 		case NM_ACTIVE_CONNECTION_STATE_ACTIVATED:
-			activate_finish(st, LIBNM_WRAPPER_ERR_SUCCESS, false);
+			activate_finish(temp, LIBNM_WRAPPER_ERR_SUCCESS, false);
 			break;
 
 		case NM_ACTIVE_CONNECTION_STATE_ACTIVATING:
 			break;
 
 		default:
-			activate_finish(st, LIBNM_WRAPPER_ERR_FAIL, false);
+			activate_finish(temp, LIBNM_WRAPPER_ERR_FAIL, false);
 			break;
 	}
 	return;
@@ -459,12 +460,12 @@ static void active_connection_state_cb (NMActiveConnection *active,
 
 static gboolean activate_connection_timeout_cb (gpointer user_data)
 {
-	libnm_wrapper_cb_st *st = (libnm_wrapper_cb_st *)user_data;
+	libnm_wrapper_cb_st *temp = (libnm_wrapper_cb_st *)user_data;
 
-	if(!st)
+	if(!temp)
 		return FALSE;
 
-	activate_finish(st, LIBNM_WRAPPER_ERR_FAIL, true);
+	activate_finish(temp, LIBNM_WRAPPER_ERR_FAIL, true);
 
 	return FALSE;
 }
@@ -473,22 +474,22 @@ static void activated_cb (GObject *client, GAsyncResult *result, gpointer user_d
 {
 	int timeout = 20;
 	GError *error = NULL;
-	libnm_wrapper_cb_st *st = (libnm_wrapper_cb_st *)user_data;
-	GMainLoop *loop = st->loop;
-	int *ret = st->result;
+	libnm_wrapper_cb_st *temp = (libnm_wrapper_cb_st *)user_data;
+	GMainLoop *loop = temp->loop;
+	int *ret = temp->result;
 
 	*ret = LIBNM_WRAPPER_ERR_FAIL;
-	st->active = nm_client_activate_connection_finish(NM_CLIENT (client), result, &error);
+	temp->active = nm_client_activate_connection_finish(NM_CLIENT (client), result, &error);
 	if (error)
 	{
 		g_error_free (error);
-		g_free(st);
-		st = NULL;
+		g_free(temp);
+		temp = NULL;
 		g_main_loop_quit(loop);
 	}
 	else
 	{
-		activate_finish(st, LIBNM_WRAPPER_ERR_SUCCESS, false);
+		activate_finish(temp, LIBNM_WRAPPER_ERR_SUCCESS, false);
 	}
 }
 
@@ -496,13 +497,13 @@ static void activate_connection(NMClient *client, NMConnection *connection,
 					NMDevice *dev, const char *specific_object, int *result)
 {
 	GMainLoop *loop = g_main_loop_new (NULL, FALSE);
-	libnm_wrapper_cb_st *st = g_malloc0(sizeof(libnm_wrapper_cb_st));
+	libnm_wrapper_cb_st *temp = g_malloc0(sizeof(libnm_wrapper_cb_st));
 
-	st->loop = loop;
-	st->result = result;
-	st->active = NULL;
-	st->g_timer_id = 0;
-	nm_client_activate_connection_async(client, connection, dev, specific_object, NULL, activated_cb, st);
+	temp->loop = loop;
+	temp->result = result;
+	temp->active = NULL;
+	temp->g_timer_id = 0;
+	nm_client_activate_connection_async(client, connection, dev, specific_object, NULL, activated_cb, temp);
 	g_main_loop_run (loop);
 }
 
@@ -522,14 +523,13 @@ int libnm_wrapper_activate_connection(libnm_wrapper_handle hd, const char *inter
 	NMRemoteConnection *remote = NULL;
 	const char * specific_object = NULL;
 	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
-
 	remote = nm_client_get_connection_by_id (client, id);
 	nm_wrapper_assert(remote, LIBNM_WRAPPER_ERR_INVALID_PARAMETER)
 
 	dev = nm_client_get_device_by_iface(client, interface);
-	if(!dev)
+	if(!dev) {
 		return LIBNM_WRAPPER_ERR_NO_HARDWARE;
-
+	}
 
 	activate_connection(client, NM_CONNECTION(remote), dev, NULL, &ret);
 	return ret;
