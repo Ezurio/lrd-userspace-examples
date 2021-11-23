@@ -44,10 +44,19 @@ libnm_wrapper_handle_st *st = NULL;
  */
 libnm_wrapper_handle libnm_wrapper_init()
 {
+	int i;
+
 	if(!st) {
 		st = malloc(sizeof(libnm_wrapper_handle_st));
 		st->client = nm_client_new(NULL, NULL);
-	} 
+	} else {
+		// Process any events that are pending on the main loop that have not
+		// been processed since the last iteration
+		for (i=0; i<10; i++) {
+			if (!g_main_context_iteration(NULL, FALSE))
+				break;
+		}
+	}
 
 	return (libnm_wrapper_handle) st;
 }
