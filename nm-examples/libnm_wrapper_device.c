@@ -140,8 +140,20 @@ int libnm_wrapper_device_disconnect(libnm_wrapper_handle hd, const char *interfa
  */
 int libnm_wrapper_device_enable_wireless(libnm_wrapper_handle hd , bool enable)
 {
+	int state;
 	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
+	int count = 0;
+
 	nm_client_wireless_set_enabled(client, enable);
+	// Ensure state change is reflected in nm_client_wireless_get_enabled() before returning
+	do {
+		g_main_context_iteration(NULL, FALSE);
+		state = nm_client_wireless_get_enabled(client);
+		if (state != enable) {
+			usleep(50*1000);
+		}
+	} while ((state != enable) && (count++ < 20));
+
 	return LIBNM_WRAPPER_ERR_SUCCESS;
 }
 
