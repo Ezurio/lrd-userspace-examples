@@ -1936,6 +1936,76 @@ int libnm_wrapper_ipv4_set_address(libnm_wrapper_handle hd, const char *id, cons
 	return LIBNM_WRAPPER_ERR_SUCCESS;
 }
 
+int libnm_wrapper_ipv4_set_all_addresses(libnm_wrapper_handle hd, const char *id, const int index, const char *address, const char *netmask, const char *gateway, const char* dns)
+{
+	GError *err = NULL;
+	NMIPAddress *addr;
+	NMRemoteConnection *remote = NULL;
+	NMSettingIPConfig *s_ip4 = NULL;
+	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
+
+	remote = nm_client_get_connection_by_id(client , id);
+	nm_wrapper_assert(remote, LIBNM_WRAPPER_ERR_INVALID_PARAMETER)
+
+	s_ip4 = nm_connection_get_setting_ip4_config(NM_CONNECTION(remote));
+	if(!s_ip4)
+		return LIBNM_WRAPPER_ERR_INVALID_CONFIG;
+
+	//Force to "manual" method to set ip address
+	g_object_set (G_OBJECT(NM_SETTING(s_ip4)), NM_SETTING_IP_CONFIG_METHOD, "manual", NULL);
+
+	if(nm_setting_ip_config_get_num_addresses(s_ip4) == 0)
+	{
+		addr = nm_ip_address_new(AF_INET, "192.168.1.1", 24, NULL);
+		nm_setting_ip_config_add_address(s_ip4, addr);
+		nm_ip_address_unref(addr);
+	}
+
+	if(index >= nm_setting_ip_config_get_num_addresses(s_ip4))
+		return LIBNM_WRAPPER_ERR_INVALID_CONFIG;
+
+	addr = nm_setting_ip_config_get_address(s_ip4, index);
+
+	if(address && strlen(address))
+		nm_ip_address_set_address(addr, address);
+
+	if(netmask && strlen(netmask))
+	{
+		int prefix = atoi(netmask);
+		if(prefix > 0 && prefix < 32)
+			nm_ip_address_set_prefix(addr, atoi(netmask));
+	}
+
+	if(gateway && strlen(gateway))
+		g_object_set (G_OBJECT(NM_SETTING(s_ip4)), NM_SETTING_IP_CONFIG_GATEWAY, gateway, NULL);
+
+	nm_setting_ip_config_clear_dns(s_ip4);
+	if(dns){
+		char * tokens;
+		tokens = strtok(dns," ");
+		while( tokens != NULL )
+		{
+			if(nm_utils_ipaddr_valid(AF_INET, tokens) == FALSE)
+				return LIBNM_WRAPPER_ERR_INVALID_PARAMETER;
+			if(FALSE == nm_setting_ip_config_add_dns(s_ip4, tokens))
+				return LIBNM_WRAPPER_ERR_FAIL;
+			tokens = strtok(NULL," ");
+		}
+	}
+
+	if(FALSE == nm_connection_verify(NM_CONNECTION(remote), &err))
+	{
+		g_error_free (err);
+		return LIBNM_WRAPPER_ERR_INVALID_CONFIG;
+	}
+
+	if(FALSE == nm_remote_connection_commit_changes(remote, TRUE, NULL, NULL))
+			return LIBNM_WRAPPER_ERR_FAIL;
+
+	return LIBNM_WRAPPER_ERR_SUCCESS;
+}
+
+
 int libnm_wrapper_ipv4_get_address_num(libnm_wrapper_handle hd, const char *id, int *num)
 {
 	NMSettingIPConfig *s_ip4;
