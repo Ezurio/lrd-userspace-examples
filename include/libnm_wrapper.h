@@ -557,6 +557,7 @@ int libnm_wrapper_ipv4_set_method(libnm_wrapper_handle hd , const char *id, cons
 int libnm_wrapper_ipv4_get_method(libnm_wrapper_handle hd , const char *id, char *method, int len);
 int libnm_wrapper_ipv4_get_address_num(libnm_wrapper_handle hd, const char *id, int *num);
 int libnm_wrapper_ipv4_set_address(libnm_wrapper_handle hd, const char *id, const int index, const char *address, const char *netmask, const char *gateway);
+int libnm_wrapper_ipv4_set_all_addresses(libnm_wrapper_handle hd, const char *id, const int index, const char *address, const char *netmask, const char *gateway, const char* dns);
 int libnm_wrapper_ipv4_get_address(libnm_wrapper_handle hd, const char *id, const int index, char *address, int address_len, char *netmask, int netmask_len, char *gateway, int gateway_len);
 int libnm_wrapper_ipv4_set_dns(libnm_wrapper_handle hd, const char *id, char *address);
 int libnm_wrapper_ipv4_get_dns(libnm_wrapper_handle hd, const char *id, char *address, int buff_len);
