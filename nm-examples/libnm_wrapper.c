@@ -1696,6 +1696,8 @@ int libnm_wrapper_get_active_ipv4_addresses(libnm_wrapper_handle hd, const char 
 
 	const GPtrArray *addresses;
 	addresses = nm_ip_config_get_addresses(ip4);
+	if (!addresses)
+		return LIBNM_WRAPPER_ERR_FAIL;
 	NMIPAddress * nm_ip = addresses->pdata[0];
 	if (addresses->pdata[0] && ip != NULL){
 		const char * addr = nm_ip_address_get_address(nm_ip);
@@ -1708,11 +1710,15 @@ int libnm_wrapper_get_active_ipv4_addresses(libnm_wrapper_handle hd, const char 
 	}
 
 	const char * active_gateway = nm_ip_config_get_gateway(ip4);
+	if (!active_gateway)
+		return LIBNM_WRAPPER_ERR_FAIL;
 
 	if (active_gateway[0] && gateway != NULL)
 		safe_strncpy(gateway,active_gateway,gateway_len);
 
 	const char *const* active_dns_addresses = nm_ip_config_get_nameservers(ip4);
+	if (!active_dns_addresses)
+		return LIBNM_WRAPPER_ERR_FAIL;
 
 	if (active_dns_addresses[0] && dns_1 != NULL)
 		safe_strncpy(dns_1,active_dns_addresses[0],dns1_len);
@@ -1949,7 +1955,7 @@ int libnm_wrapper_ipv4_set_all_addresses(libnm_wrapper_handle hd, const char *id
 		nm_ip_address_set_address(addr, address);
 
 	if(netmask && strlen(netmask))
-	{
+	{ 
 		int prefix = atoi(netmask);
 		if(prefix > 0 && prefix < 32)
 			nm_ip_address_set_prefix(addr, atoi(netmask));
