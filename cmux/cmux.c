@@ -15,6 +15,7 @@ OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <errno.h>
 #include <termios.h>
 #include <linux/gsmmux.h>
 #include <linux/tty.h>
@@ -45,21 +46,22 @@ void signal_handler(int signum) {
 }
 
 int main(void) {
-
 	int fd, major;
 	struct termios tty;
-	int ldisc = N_GSM0710;
+	int ldisc = N_GSM0710, len;
 	struct gsm_config gsm;
 	char atbuf[64];
 
 	/* open the serial port connected to the modem */
 	fd = open(SERIAL_PORT, O_RDWR | O_NOCTTY | O_NDELAY);
-	if ( -1 == fd){
+	if (-1 == fd) {
+		fprintf(stderr, "Cannot open " SERIAL_PORT " : %s\n", strerror(errno));
 		return -1;
 	}
 
 	/* configure the serial port : speed, flow control ... */
-	if (-1 == tcgetattr(fd, &tty)){
+	if (-1 == tcgetattr(fd, &tty)) {
+		fprintf(stderr, "tcgetattr : %s\n", strerror(errno));
 		close(fd);
 		return -1;
 	}
@@ -73,15 +75,17 @@ int main(void) {
 	tty.c_cc[VMIN] = 1;
 	tty.c_cc[VTIME] = 0;
 
-	if ( -1 == tcsetattr(fd, TCSANOW, &tty)){
+	if (-1 == tcsetattr(fd, TCSANOW, &tty)) {
+		fprintf(stderr, "tcsetattr : %s\n", strerror(errno));
 		close(fd);
 		return -1;
 	}
 
 	/* send the AT commands to switch the modem to CMUX mode
 	   and check that it's successful (should return OK) */
-	snprintf(atbuf, sizeof(atbuf), "AT+CMUX=0,0,,%d\r\n", MTU);
-	if (-1 == write(fd, atbuf, strlen(atbuf))){
+	len = snprintf(atbuf, sizeof(atbuf), "AT+CMUX=0,0,,%d\r\n", MTU);
+	if (-1 == write(fd, atbuf, len)) {
+		fprintf(stderr, "write " SERIAL_PORT " : %s\n", strerror(errno));
 		close(fd);
 		return -1;
 	}
@@ -91,13 +95,16 @@ int main(void) {
 	   may be needed here in some case */
 	sleep(1);
 
-	memset(atbuf, 0, sizeof(atbuf));
-	if(read(fd, atbuf, sizeof(atbuf)) < 1){
+	len = read(fd, atbuf, sizeof(atbuf) - 1);
+	if (len < 0) {
+		fprintf(stderr, "read " SERIAL_PORT " : %s\n", strerror(errno));
 		close(fd);
 		return -1;
 	}
+	atbuf[len] = 0;
 
-	if(!strstr(atbuf, "OK")){
+	if (!strstr(atbuf, "OK")) {
+		fprintf(stderr, "response bogus : %s\n", atbuf);
 		close(fd);
 		return -1;
 	}
@@ -106,7 +113,8 @@ int main(void) {
 	ioctl(fd, TIOCSETD, &ldisc);
 
 	/* get n_gsm configuration */
-	if (ioctl(fd, GSMIOC_GETCONF, &gsm) < 0){
+	if (ioctl(fd, GSMIOC_GETCONF, &gsm) < 0) {
+		fprintf(stderr, "ioctl GSMIOC_GETCONF : %s\n", strerror(errno));
 		close(fd);
 		return -1;
 	}
@@ -124,7 +132,8 @@ int main(void) {
 	//gsm.k = 0;
 
 	/* set the new configuration */
-	if (ioctl(fd, GSMIOC_SETCONF, &gsm) < 0){
+	if (ioctl(fd, GSMIOC_SETCONF, &gsm) < 0) {
+		fprintf(stderr, "ioctl GSMIOC_SETCONF : %s\n", strerror(errno));
 		close(fd);
 		return -1;
 	}
