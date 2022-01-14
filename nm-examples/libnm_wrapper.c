@@ -566,6 +566,24 @@ int libnm_wrapper_activate_connection(libnm_wrapper_handle hd, const char *inter
 	return ret;
 }
 
+static void deactivate_connection_cb(GObject *client, GAsyncResult *result, gpointer user_data)
+{
+	GError *error = NULL;
+	libnm_wrapper_cb_st *temp = (libnm_wrapper_cb_st *)user_data;
+	GMainLoop *loop = temp->loop;
+	int *ret = temp->result;
+
+	nm_client_deactivate_connection_finish(NM_CLIENT(client), result, &error);
+	if (error) {
+		*ret = LIBNM_WRAPPER_ERR_FAIL;
+		g_error_free (error);
+	} else {
+		*ret = LIBNM_WRAPPER_ERR_SUCCESS;
+	}
+	g_free(temp);
+	g_main_loop_quit(loop);
+}
+
 /**
  * Deactivate the connection on the interface.
  * @param hd: library handle
@@ -578,17 +596,26 @@ int libnm_wrapper_deactivate_connection(libnm_wrapper_handle hd, const char *int
 	NMDevice * dev = NULL;
 	NMActiveConnection *active = NULL;
 	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
+	GMainLoop *loop;
+	libnm_wrapper_cb_st *temp;
+	int result;
 
 	dev = nm_client_get_device_by_iface(client, interface);
 	active = nm_device_get_active_connection(dev);
 	if(!active)
 		return LIBNM_WRAPPER_ERR_SUCCESS;
 
-	if(TRUE == nm_client_deactivate_connection (client, active, NULL, NULL))
-		return LIBNM_WRAPPER_ERR_SUCCESS;
+	loop = g_main_loop_new (NULL, FALSE);
+	temp = g_malloc0(sizeof(libnm_wrapper_cb_st));
+	temp->loop = loop;
+	temp->result = &result;
 
-	return LIBNM_WRAPPER_ERR_FAIL;
+	nm_client_deactivate_connection_async (client, active, NULL, deactivate_connection_cb, temp);
+	g_main_loop_run (loop);
+
+	return result;
 }
+
 /**@}*/
 
 /**
