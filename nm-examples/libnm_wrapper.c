@@ -359,6 +359,24 @@ int libnm_wrapper_delete_connection(libnm_wrapper_handle hd, char *id)
 	return ret;
 }
 
+static void autoconnect_cb(GObject *remote, GAsyncResult *result, gpointer user_data)
+{
+	GError *error = NULL;
+	libnm_wrapper_cb_st *temp = (libnm_wrapper_cb_st *)user_data;
+	GMainLoop *loop = temp->loop;
+	int *ret = temp->result;
+
+	nm_remote_connection_commit_changes_finish (NM_REMOTE_CONNECTION(remote), result, &error);
+	if (error) {
+		*ret = LIBNM_WRAPPER_ERR_FAIL;
+		g_error_free (error);
+	} else {
+		*ret = LIBNM_WRAPPER_ERR_SUCCESS;
+	}
+	g_free(temp);
+	g_main_loop_quit(loop);
+}
+
 /**
  * Enable/disable auto-start of a connection.
  * @param hd: library handle
@@ -372,17 +390,26 @@ int libnm_wrapper_connection_set_autoconnect(libnm_wrapper_handle hd, const char
 	NMRemoteConnection *remote = NULL;
 	NMSettingConnection *s_con = NULL;
 	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
+	GMainLoop *loop = g_main_loop_new (NULL, FALSE);
+	libnm_wrapper_cb_st *temp = g_malloc0(sizeof(libnm_wrapper_cb_st));
+	int result;
+
+	temp->loop = loop;
+	temp->result = &result;
+
 
 	remote = nm_client_get_connection_by_id(client, id);
-	nm_wrapper_assert(remote, LIBNM_WRAPPER_ERR_INVALID_PARAMETER)
+	nm_wrapper_assert(remote, LIBNM_WRAPPER_ERR_INVALID_PARAMETER);
 
 	s_con = nm_connection_get_setting_connection(NM_CONNECTION(remote));
 	g_object_set(G_OBJECT(s_con), NM_SETTING_CONNECTION_AUTOCONNECT, autoconnect, NULL);
 
-	nm_remote_connection_commit_changes_async(remote, TRUE, NULL, NULL, NULL);
+	nm_remote_connection_commit_changes_async(remote, TRUE, NULL, autoconnect_cb, temp);
+	g_main_loop_run (loop);
 
-	return LIBNM_WRAPPER_ERR_SUCCESS;
+	return result;
 }
+
 
 /**
  * Get auto-start status of a connection.
