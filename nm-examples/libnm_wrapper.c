@@ -369,7 +369,6 @@ int libnm_wrapper_delete_connection(libnm_wrapper_handle hd, char *id)
  */
 int libnm_wrapper_connection_set_autoconnect(libnm_wrapper_handle hd, const char *id, bool autoconnect)
 {
-	GError *err = NULL;
 	NMRemoteConnection *remote = NULL;
 	NMSettingConnection *s_con = NULL;
 	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
@@ -380,12 +379,8 @@ int libnm_wrapper_connection_set_autoconnect(libnm_wrapper_handle hd, const char
 	s_con = nm_connection_get_setting_connection(NM_CONNECTION(remote));
 	g_object_set(G_OBJECT(s_con), NM_SETTING_CONNECTION_AUTOCONNECT, autoconnect, NULL);
 
-	nm_remote_connection_commit_changes(remote, TRUE, NULL, &err);
-	if(err)
-	{
-		g_error_free (err);
-		return LIBNM_WRAPPER_ERR_FAIL;
-	}
+	nm_remote_connection_commit_changes_async(remote, TRUE, NULL, NULL, NULL);
+
 	return LIBNM_WRAPPER_ERR_SUCCESS;
 }
 
