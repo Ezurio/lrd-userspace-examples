@@ -359,7 +359,7 @@ int libnm_wrapper_delete_connection(libnm_wrapper_handle hd, char *id)
 	return ret;
 }
 
-static void autoconnect_cb(GObject *remote, GAsyncResult *result, gpointer user_data)
+static void remote_commit_cb(GObject *remote, GAsyncResult *result, gpointer user_data)
 {
 	GError *error = NULL;
 	libnm_wrapper_cb_st *temp = (libnm_wrapper_cb_st *)user_data;
@@ -404,7 +404,7 @@ int libnm_wrapper_connection_set_autoconnect(libnm_wrapper_handle hd, const char
 	s_con = nm_connection_get_setting_connection(NM_CONNECTION(remote));
 	g_object_set(G_OBJECT(s_con), NM_SETTING_CONNECTION_AUTOCONNECT, autoconnect, NULL);
 
-	nm_remote_connection_commit_changes_async(remote, TRUE, NULL, autoconnect_cb, temp);
+	nm_remote_connection_commit_changes_async(remote, TRUE, NULL, remote_commit_cb, temp);
 	g_main_loop_run (loop);
 
 	return result;
@@ -1425,7 +1425,9 @@ int libnm_wrapper_connection_update_wireless_connection(libnm_wrapper_handle hd,
 	NMConnection *connection = NULL;
 	NMRemoteConnection *remote = NULL;
 	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
-
+	GMainLoop *loop;
+	libnm_wrapper_cb_st *temp;
+	int result;
 
 	remote = nm_client_get_connection_by_id (client, id);
 	nm_wrapper_assert(remote, LIBNM_WRAPPER_ERR_INVALID_PARAMETER)
@@ -1448,14 +1450,15 @@ int libnm_wrapper_connection_update_wireless_connection(libnm_wrapper_handle hd,
 		return LIBNM_WRAPPER_ERR_INVALID_CONFIG;
 	}
 
-	nm_remote_connection_commit_changes(remote, TRUE, NULL, &err);
-	if (err)
-	{
-		g_error_free (err);
-		return LIBNM_WRAPPER_ERR_FAIL;
-	}
+	loop = g_main_loop_new (NULL, FALSE);
+	temp = g_malloc0(sizeof(libnm_wrapper_cb_st));
+	temp->loop = loop;
+	temp->result = &result;
 
-	return LIBNM_WRAPPER_ERR_SUCCESS;
+	nm_remote_connection_commit_changes_async(remote, TRUE, NULL, remote_commit_cb, temp);
+	g_main_loop_run(loop);
+
+	return result;
 }
 
 /**@}*/
@@ -1977,6 +1980,9 @@ int libnm_wrapper_ipv4_set_all_addresses(libnm_wrapper_handle hd, const char *id
 	NMRemoteConnection *remote = NULL;
 	NMSettingIPConfig *s_ip4 = NULL;
 	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
+	GMainLoop *loop;
+	libnm_wrapper_cb_st *temp;
+	int result;
 
 	remote = nm_client_get_connection_by_id(client , id);
 	nm_wrapper_assert(remote, LIBNM_WRAPPER_ERR_INVALID_PARAMETER)
@@ -2033,10 +2039,14 @@ int libnm_wrapper_ipv4_set_all_addresses(libnm_wrapper_handle hd, const char *id
 		return LIBNM_WRAPPER_ERR_INVALID_CONFIG;
 	}
 
-	if(FALSE == nm_remote_connection_commit_changes(remote, TRUE, NULL, NULL))
-			return LIBNM_WRAPPER_ERR_FAIL;
+	loop = g_main_loop_new (NULL, FALSE);
+	temp = g_malloc0(sizeof(libnm_wrapper_cb_st));
+	temp->loop = loop;
+	temp->result = &result;
 
-	return LIBNM_WRAPPER_ERR_SUCCESS;
+	nm_remote_connection_commit_changes_async(remote, TRUE, NULL, remote_commit_cb, temp);
+
+	return result;
 }
 
 
