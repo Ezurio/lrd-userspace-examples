@@ -2045,6 +2045,7 @@ int libnm_wrapper_ipv4_set_all_addresses(libnm_wrapper_handle hd, const char *id
 	temp->result = &result;
 
 	nm_remote_connection_commit_changes_async(remote, TRUE, NULL, remote_commit_cb, temp);
+	g_main_loop_run(loop);
 
 	return result;
 }
