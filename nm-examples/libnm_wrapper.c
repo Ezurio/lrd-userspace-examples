@@ -164,6 +164,8 @@ static void add_settings(NMConnection *connection, NMWrapperSettings *s)
 		NM_SETTING_CONNECTION_ID, s->id,
 		NM_SETTING_CONNECTION_UUID, uuid,
 		NM_SETTING_CONNECTION_AUTOCONNECT, s->autoconnect,
+		NM_SETTING_CONNECTION_AUTOCONNECT_RETRIES, 0,
+		NM_SETTING_CONNECTION_AUTH_RETRIES, 0,
 		NM_SETTING_CONNECTION_INTERFACE_NAME, s->interface,
 		NM_SETTING_CONNECTION_TYPE, s->type, NULL);
 	g_free (uuid);
@@ -403,7 +405,6 @@ int libnm_wrapper_connection_set_autoconnect(libnm_wrapper_handle hd, const char
 
 	s_con = nm_connection_get_setting_connection(NM_CONNECTION(remote));
 	g_object_set(G_OBJECT(s_con), NM_SETTING_CONNECTION_AUTOCONNECT, autoconnect, NULL);
-
 	nm_remote_connection_commit_changes_async(remote, TRUE, NULL, remote_commit_cb, temp);
 	g_main_loop_run (loop);
 
