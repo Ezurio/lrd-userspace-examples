@@ -1170,6 +1170,12 @@ static int set_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 			}
 			return ret;
 		}
+		if (!wxs->private_key_password || strlen(wxs->private_key_password) <= 0) {
+			if ( FALSE == nm_setting_set_secret_flags (NM_SETTING (s_8021x), NM_SETTING_802_1X_PRIVATE_KEY_PASSWORD,
+	                             NM_SETTING_SECRET_FLAG_NOT_REQUIRED, NULL)){
+				return ret;
+			}
+		}
 	}
 
 	if (wxs->p2_private_key[0])
