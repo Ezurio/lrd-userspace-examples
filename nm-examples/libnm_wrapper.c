@@ -830,7 +830,7 @@ static int set_wireless_security_settings_keymgmt_ieee8021x(NMSettingWirelessSec
 
 static int get_wireless_security_settings_keymgmt_eap(NMConnection *connection, NMWrapperWireless8021xSettings *wxs)
 {
-	int i, nums;
+	int i, nums, flags;
 	const char *ptr = NULL;
 	GBytes *bptr = NULL;
 	NMSetting8021x *s_8021x = NULL;
@@ -986,8 +986,17 @@ static int get_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 		safe_strncpy(wxs->private_key, NULL, LIBNM_WRAPPER_MAX_PATH_LEN);
 	}
 
+	// Note - private key password, like all secrets, is not accessible from the setting object unless we have explicitly written it
+	// Secrets must be retrieved separately from the remote connection via nm_remote_connection_get_secrets_async()
+	// which is not currently implemented
 	ptr = nm_setting_802_1x_get_private_key_password(s_8021x);
 	safe_strncpy(wxs->private_key_password, ptr, LIBNM_WRAPPER_MAX_NAME_LEN);
+
+	// We need to distinguish between no password and not available password, so use flags for that purpose
+	flags = nm_setting_802_1x_get_private_key_password_flags(s_8021x);
+	if (flags & NM_SETTING_SECRET_FLAG_NOT_REQUIRED) {
+		wxs->private_key_password_none = true;
+	}
 
 	ptr = nm_setting_802_1x_get_pin(s_8021x);
 	safe_strncpy(wxs->pin, ptr, LIBNM_WRAPPER_MAX_NAME_LEN);
@@ -1162,15 +1171,25 @@ static int set_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 
 	if (wxs->private_key[0])
 	{
+		char * pPwd = wxs->private_key_password;
+
 		cert_to_utf8_path(wxs->private_key_scheme, wxs->private_key, buf, LIBNM_WRAPPER_MAX_PATH_LEN);
-		if (FALSE == nm_setting_802_1x_set_private_key(s_8021x, buf, wxs->private_key_password, wxs->private_key_scheme, NULL, &err)) {
-			if(err) {
+
+		// Do not update private key password field if none is provided
+		// This leaves existing secret in place with the assumption it is (or has been) provided at another time if needed
+		// Password will be provided if used when key is initially set but not on subsequent updates with current implementation
+		if (!wxs->private_key_password || strlen(wxs->private_key_password) <= 0)
+			pPwd = NULL;
+
+		if(FALSE == nm_setting_802_1x_set_private_key(s_8021x, buf, pPwd, wxs->private_key_scheme, NULL, &err)){
+			if(err)
+			{
 				g_error_free (err);
 				return LIBNM_WRAPPER_ERR_INVALID_CONFIG;
 			}
 			return ret;
 		}
-		if (!wxs->private_key_password || strlen(wxs->private_key_password) <= 0) {
+		if (wxs->private_key_password_none) {
 			if ( FALSE == nm_setting_set_secret_flags (NM_SETTING (s_8021x), NM_SETTING_802_1X_PRIVATE_KEY_PASSWORD,
 	                             NM_SETTING_SECRET_FLAG_NOT_REQUIRED, NULL)){
 				return ret;
