@@ -167,6 +167,9 @@ typedef struct _NMWrapperWireless8021xSettings {
 	///Contains the private key when the “eap” property is set to "tls".
 	char private_key[LIBNM_WRAPPER_MAX_PATH_LEN];
 	char private_key_password[LIBNM_WRAPPER_MAX_NAME_LEN];
+	// API does not currently provide a method for secrets to be read back
+	// Use NM flags parameter to distinguish between unavailable PK password and unencrypted PK
+	int private_key_password_none;
 	char pin[LIBNM_WRAPPER_MAX_NAME_LEN];
 	char pac_file_password[LIBNM_WRAPPER_MAX_NAME_LEN];
 } NMWrapperWireless8021xSettings;
@@ -184,6 +187,7 @@ static inline void NMWrapperWireless8021xSettings_init(NMWrapperWireless8021xSet
 	wxs->p2_cli_cert[0] = wxs->p2_cli_cert_password[0] = '\0';
 	wxs->p2_private_key[0] = wxs->p2_private_key_password[0] = '\0';
 	wxs->private_key[0] = wxs->private_key_password[0] = wxs->pin[0] = '\0';
+	wxs->private_key_password_none = false;
 }
 
 static inline const char* prefix_to_netmask(int prefix, char *buffer, int len)
