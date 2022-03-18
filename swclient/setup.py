@@ -1,10 +1,10 @@
-from distutils.core import setup, Extension
+#!/usr/bin/python
+
+from setuptools import setup, Extension, os
 
 swclient_module = Extension('swclient',
-							include_dirs = ['./'],
-							libraries_dirs = [''],
-							libraries = ['swupdate-client'],
-							sources = ['swclient.c'])
+        libraries = ['swupdate'],
+        sources = ['swclient.c'])
 
 setup(name='swclient',
 	version='1.0.0',
