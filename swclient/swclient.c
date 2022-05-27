@@ -102,8 +102,8 @@ static PyObject * get_fw_update_state(PyObject *self, PyObject *Py_UNUSED(ignore
 		Py_RETURN_NONE;
 
 	/* Build the output tuple */
-	return Py_BuildValue("iIIIs", msg.status, msg.nsteps, msg.cur_step,
-			     msg.cur_percent, msg.cur_image);
+	return Py_BuildValue("iIIIss", msg.status, msg.nsteps, msg.cur_step,
+			     msg.cur_percent, msg.cur_image, msg.info);
 }
 
 static PyMethodDef swclient_methods[] =
