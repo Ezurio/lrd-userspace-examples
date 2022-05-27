@@ -11,6 +11,7 @@
 #include <sys/select.h>
 #include <progress_ipc.h>
 #include <network_ipc.h>
+#include <stdio.h>
 
 #include <Python.h>
 
@@ -20,15 +21,24 @@ static int dryrun = 1;
 static PyObject * prepare_fw_update(PyObject *self, PyObject *args)
 {
 	struct swupdate_request req;
+	const char* software_set;
+	const char* running_mode;
 
 	if (!PyArg_ParseTuple(args, "i", &dryrun))
+	if (!PyArg_ParseTuple(args, "iss", &dryrun, &software_set, &running_mode)) {
+		fprintf(stderr, "prepare_fw_update: PyArg_ParseTuple failed\n");
 		return NULL;
+	}
 
 	if (fd > 0)
 		ipc_end(fd);
 
 	swupdate_prepare_req(&req);
 	req.dry_run = dryrun ? RUN_DRYRUN : RUN_INSTALL;
+	if (software_set && strlen(software_set))
+		strncpy(req.software_set, software_set, sizeof(req.software_set) - 1);
+	if (running_mode && strlen(running_mode))
+		strncpy(req.running_mode, running_mode, sizeof(req.running_mode) - 1);
 
 	fd = ipc_inst_start_ext(&req, sizeof(req));
 
@@ -37,14 +47,17 @@ static PyObject * prepare_fw_update(PyObject *self, PyObject *args)
 
 static PyObject * do_fw_update(PyObject *self, PyObject *args)
 {
-	Py_ssize_t size = 0;
-	char *buf = NULL;
 	int rc = -1;
+	Py_buffer py_buf;
 
-	if (!PyArg_ParseTuple(args, "s#", &buf, &size))
+	if (!PyArg_ParseTuple(args, "y*", &py_buf)) {
+		fprintf(stderr, "do_fw_update: PyArg_ParseTuple failed\n");
 		return NULL;
+	}
 
-	rc = ipc_send_data(fd, buf, size);
+	rc = ipc_send_data(fd, py_buf.buf, py_buf.len);
+
+	PyBuffer_Release(&py_buf);
 
 	return Py_BuildValue("i", rc);
 }
@@ -52,6 +65,7 @@ static PyObject * do_fw_update(PyObject *self, PyObject *args)
 static PyObject * end_fw_update(PyObject *self, PyObject *Py_UNUSED(ignored))
 {
 	ipc_end(fd);
+	fd = -1;
 	Py_RETURN_NONE;
 }
 
