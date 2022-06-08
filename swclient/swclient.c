@@ -7,38 +7,34 @@
 /*
  * The library wraps swupdate client APIs
  */
-#include <sys/socket.h>
-#include <sys/select.h>
+
 #include <progress_ipc.h>
 #include <network_ipc.h>
-#include <stdio.h>
 
 #include <Python.h>
-
-static int fd = -1;
-static int dryrun = 1;
 
 static PyObject * prepare_fw_update(PyObject *self, PyObject *args)
 {
 	struct swupdate_request req;
 	const char* software_set;
 	const char* running_mode;
+	int dryrun = 1, fd = -1;
 
-	if (!PyArg_ParseTuple(args, "i", &dryrun))
-	if (!PyArg_ParseTuple(args, "iss", &dryrun, &software_set, &running_mode)) {
-		fprintf(stderr, "prepare_fw_update: PyArg_ParseTuple failed\n");
+	if (!PyArg_ParseTuple(args, "i|ss", &dryrun, &software_set, &running_mode)) {
+		PyErr_SetString(PyExc_RuntimeError, "prepare_fw_update: PyArg_ParseTuple failed");
 		return NULL;
 	}
 
-	if (fd > 0)
-		ipc_end(fd);
-
 	swupdate_prepare_req(&req);
 	req.dry_run = dryrun ? RUN_DRYRUN : RUN_INSTALL;
-	if (software_set && strlen(software_set))
-		strncpy(req.software_set, software_set, sizeof(req.software_set) - 1);
-	if (running_mode && strlen(running_mode))
-		strncpy(req.running_mode, running_mode, sizeof(req.running_mode) - 1);
+	if (software_set && *software_set) {
+		strncpy(req.software_set, software_set, sizeof(req.software_set));
+		req.software_set[sizeof(req.software_set) - 1] = '\0';
+	}
+	if (running_mode && *running_mode) {
+		strncpy(req.running_mode, running_mode, sizeof(req.running_mode));
+		req.running_mode[sizeof(req.running_mode) - 1] = '\0';
+	}
 
 	fd = ipc_inst_start_ext(&req, sizeof(req));
 
@@ -47,11 +43,16 @@ static PyObject * prepare_fw_update(PyObject *self, PyObject *args)
 
 static PyObject * do_fw_update(PyObject *self, PyObject *args)
 {
-	int rc = -1;
+	int rc = -1, fd = -1;
 	Py_buffer py_buf;
 
-	if (!PyArg_ParseTuple(args, "y*", &py_buf)) {
-		fprintf(stderr, "do_fw_update: PyArg_ParseTuple failed\n");
+	if (!PyArg_ParseTuple(args, "y*i", &py_buf, &fd)) {
+		PyErr_SetString(PyExc_RuntimeError, "do_fw_update: PyArg_ParseTuple failed");
+		return NULL;
+	}
+
+	if (fd < 0) {
+		PyErr_SetString(PyExc_RuntimeError, "do_fw_update: invalid file descriptor");
 		return NULL;
 	}
 
@@ -62,56 +63,85 @@ static PyObject * do_fw_update(PyObject *self, PyObject *args)
 	return Py_BuildValue("i", rc);
 }
 
-static PyObject * end_fw_update(PyObject *self, PyObject *Py_UNUSED(ignored))
+static PyObject * end_fw_update(PyObject *self, PyObject *args)
 {
+	int fd = -1;
+
+	if (!PyArg_ParseTuple(args, "i", &fd)) {
+		PyErr_SetString(PyExc_RuntimeError, "end_fw_update: PyArg_ParseTuple failed");
+		return NULL;
+	}
+
 	ipc_end(fd);
-	fd = -1;
+
 	Py_RETURN_NONE;
 }
 
-static PyObject * get_fw_update_state(PyObject *self, PyObject *Py_UNUSED(ignored))
+static PyObject * open_progress_ipc(PyObject *self, PyObject *Py_UNUSED(ignored))
 {
-	int rc = 0, valid = 0;
-	struct progress_msg msg;
-	fd_set rd_set;
-	struct timeval timeout;
-
+	/* Open IPC channel file descriptor */
 	int msg_fd = progress_ipc_connect(false);
 
-	if (msg_fd < 0)
-		Py_RETURN_NONE;
+	return Py_BuildValue("i", msg_fd);
+}
 
-	for (;;) {
-		FD_ZERO(&rd_set);
-		FD_SET(msg_fd, &rd_set);
+static PyObject * read_progress_ipc(PyObject *self, PyObject *args)
+{
+	struct progress_msg msg;
+	int rc = 0, msg_fd = -1;
 
-		/* Initialize the timeout data structure. */
-		timeout.tv_sec = 0;
-		timeout.tv_usec = 200000;
-
-		rc = select(msg_fd + 1, &rd_set, NULL, NULL, &timeout);
-		if (rc <= 0)
-			break;
-
-		read(msg_fd, &msg, sizeof(msg));
-		valid = 1;
+	if (!PyArg_ParseTuple(args, "i", &msg_fd)) {
+		PyErr_SetString(PyExc_RuntimeError, "read_progress_ipc: PyArg_ParseTuple failed");
+		return NULL;
 	}
 
-	ipc_end(msg_fd);
-	if (!valid)
-		Py_RETURN_NONE;
+	/* Ensure the provided file descriptor is valid */
+	if (msg_fd < 0) {
+		PyErr_SetString(PyExc_RuntimeError, "read_progress_ipc: invalid file descriptor");
+		return NULL;
+	}
 
-	/* Build the output tuple */
+	/* Read from the IPC channel */
+	rc = progress_ipc_receive(&msg_fd, &msg);
+	if (rc <= 0) {
+		PyErr_SetString(PyExc_RuntimeError, "read_progress_ipc: could not read from IPC channel");
+		return NULL;
+	}
+
+	/* Return the message result to the caller */
 	return Py_BuildValue("iIIIss", msg.status, msg.nsteps, msg.cur_step,
 			     msg.cur_percent, msg.cur_image, msg.info);
+}
+
+static PyObject * close_progress_ipc(PyObject *self, PyObject *args)
+{
+	int msg_fd = -1;
+
+	if (!PyArg_ParseTuple(args, "i", &msg_fd)) {
+		PyErr_SetString(PyExc_RuntimeError, "close_progress_ipc: PyArg_ParseTuple failed");
+		return NULL;
+	}
+
+	/* Ensure the provided file descriptor is valid */
+	if (msg_fd < 0) {
+		PyErr_SetString(PyExc_RuntimeError, "close_progress_ipc: invalid file descriptor");
+		return NULL;
+	}
+
+	/* Close the IPC channel connection */
+	ipc_end(msg_fd);
+
+	Py_RETURN_NONE;
 }
 
 static PyMethodDef swclient_methods[] =
 {
 	{ "prepare_fw_update",	 prepare_fw_update,   METH_VARARGS, "Prepare to update firmware"	 },
 	{ "do_fw_update",	 do_fw_update,	      METH_VARARGS, "Do firmware update"		 },
-	{ "end_fw_update",	 end_fw_update,	      METH_NOARGS,  "End firmware update"		 },
-	{ "get_fw_update_state", get_fw_update_state, METH_NOARGS,  "Get firmware update progress state" },
+	{ "end_fw_update",	 end_fw_update,	      METH_VARARGS, "End firmware update"		 },
+	{ "open_progress_ipc",	 open_progress_ipc,   METH_NOARGS,  "Open progress IPC connection"	 },
+	{ "read_progress_ipc",	 read_progress_ipc,   METH_VARARGS, "Read progress via IPC connection"	 },
+	{ "close_progress_ipc",	 close_progress_ipc,  METH_VARARGS, "Close progress IPC connection"	 },
 	{ NULL,			 NULL,		      0,	    NULL				 }
 };
 
