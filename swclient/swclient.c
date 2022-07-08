@@ -7,19 +7,9 @@
 /*
  * The library wraps swupdate client APIs
  */
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <errno.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <sys/types.h>
+
 #include <sys/socket.h>
-#include <stdbool.h>
 #include <sys/select.h>
-#include <sys/stat.h>
-#include <sys/time.h>
 #include "progress_ipc.h"
 #include "network_ipc.h"
 
@@ -28,86 +18,84 @@
 static int fd = -1;
 static int dryrun = 1;
 
-static PyObject* prepare_fw_update(PyObject * self, PyObject * args)
+static PyObject * prepare_fw_update(PyObject *self, PyObject *args)
 {
-
-	if (!PyArg_ParseTuple(args, "i", &dryrun)) {
+	if (!PyArg_ParseTuple(args, "i", &dryrun))
 		return NULL;
-	}
 
-	if(fd > 0)
+	if (fd > 0)
 		ipc_end(fd);
 
 	fd = ipc_inst_start_ext(SOURCE_UNKNOWN, 0, NULL, dryrun);
 
-    return Py_BuildValue("i", fd);
+	return Py_BuildValue("i", fd);
 }
 
-static PyObject* do_fw_update(PyObject * self, PyObject * args){
-
+static PyObject * do_fw_update(PyObject *self, PyObject *args)
+{
 	Py_ssize_t size = 0;
 	const char *buf = NULL;
-	int rc = -1;
+	int rc;
 
-	if (!PyArg_ParseTuple(args, "s#", &buf, &size)){
+	if (!PyArg_ParseTuple(args, "s#", &buf, &size))
 		return NULL;
-	}
 
 	rc = ipc_send_data(fd, (char *)buf, size);
-    return Py_BuildValue("i", rc);
+	return Py_BuildValue("i", rc);
 }
 
-static PyObject* end_fw_update(PyObject * self, PyObject *Py_UNUSED(ignored)){
-
+static PyObject * end_fw_update(PyObject *self, PyObject *Py_UNUSED(ignored))
+{
 	ipc_end(fd);
+
 	Py_RETURN_NONE;
 }
 
-static PyObject* get_fw_update_state(PyObject * self, PyObject *Py_UNUSED(ignored))
+static PyObject * get_fw_update_state(PyObject *self, PyObject *Py_UNUSED(ignored))
 {
-	int rc = 0, valid = 0;
+	int rc, valid = 0;
 	struct progress_msg msg;
 	fd_set rd_set;
 	struct timeval timeout;
 
 	int msg_fd = progress_ipc_connect(false);
-	if(msg_fd < 0)
+
+	if (msg_fd < 0)
 		Py_RETURN_NONE;
 
-	while(1){
-
-		FD_ZERO (&rd_set);
-		FD_SET (msg_fd, &rd_set);
+	for (;;) {
+		FD_ZERO(&rd_set);
+		FD_SET(msg_fd, &rd_set);
 
 		/* Initialize the timeout data structure. */
 		timeout.tv_sec = 0;
 		timeout.tv_usec = 200000;
 
-		rc = select (msg_fd + 1, &rd_set, NULL, NULL, &timeout);
-		if(rc > 0){
-			read(msg_fd, &msg, sizeof(msg));
-			valid = 1;
-			continue;
-		}
+		rc = select(msg_fd + 1, &rd_set, NULL, NULL, &timeout);
+		if (rc <= 0)
+			break;
 
-		break;
+		read(msg_fd, &msg, sizeof(msg));
+		valid = 1;
 	}
 
 	ipc_end(msg_fd);
 
-	if(!valid) Py_RETURN_NONE;
+	if (!valid)
+		Py_RETURN_NONE;
+
 	/* Build the output tuple */
-    return Py_BuildValue("iIIIs", msg.status,
-			msg.nsteps, msg.cur_step, msg.cur_percent,
-			msg.cur_image);
+	return Py_BuildValue("iIIIs", msg.status,
+			     msg.nsteps, msg.cur_step, msg.cur_percent,
+			     msg.cur_image);
 }
 
 static PyMethodDef swclient_methods[] = {
-    {"prepare_fw_update", prepare_fw_update, METH_VARARGS, "Prepare to update firmware"},
-    {"do_fw_update", do_fw_update, METH_VARARGS, "Do firmware update"},
-    {"end_fw_update", end_fw_update, METH_NOARGS, "End firmware update"},
-    {"get_fw_update_state", get_fw_update_state, METH_NOARGS, "Get firmware update progress state"},
-    {NULL, NULL, 0, NULL}
+	{ "prepare_fw_update",	 prepare_fw_update,   METH_VARARGS, "Prepare to update firmware"	 },
+	{ "do_fw_update",	 do_fw_update,	      METH_VARARGS, "Do firmware update"		 },
+	{ "end_fw_update",	 end_fw_update,	      METH_NOARGS,  "End firmware update"		 },
+	{ "get_fw_update_state", get_fw_update_state, METH_NOARGS,  "Get firmware update progress state" },
+	{ NULL,			 NULL,		      0,	    NULL				 }
 };
 
 // Module definition
@@ -115,19 +103,22 @@ static PyMethodDef swclient_methods[] = {
 // The arguments of this structure tell Python what to call your extension,
 // what it's methods are and where to look for it's method definitions
 static struct PyModuleDef swclient_definition = {
-    PyModuleDef_HEAD_INIT,
-    "swclient",
-    "A Python module that wraps swupdate client APIs.",
-    -1,
-    swclient_methods
+	PyModuleDef_HEAD_INIT,
+	"swclient",
+	"A Python module that wraps swupdate client APIs.",
+	-1,
+	swclient_methods
 };
 
-PyMODINIT_FUNC PyInit_swclient(void) {
-    Py_Initialize();
-    return PyModule_Create(&swclient_definition);
+PyMODINIT_FUNC PyInit_swclient(void)
+{
+	return PyModule_Create(&swclient_definition);
 }
 #else
-PyMODINIT_FUNC initswclient() {
-    Py_InitModule3("swclient", swclient_methods, "A Python module that wraps swupdate client APIs.");
+PyMODINIT_FUNC initswclient()
+{
+	return Py_InitModule3(
+		"swclient", swclient_methods,
+		"A Python module that wraps swupdate client APIs.");
 }
 #endif
