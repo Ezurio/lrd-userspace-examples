@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from setuptools import setup, Extension, os
+from setuptools import setup, Extension
 
 swclient_module = Extension('swclient',
         libraries = ['swupdate'],
