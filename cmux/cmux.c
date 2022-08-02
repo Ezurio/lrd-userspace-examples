@@ -40,13 +40,35 @@ OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 #define DEFAULT_SPEED B3000000	//default baudrate
 #define MTU 1428
 
+// terminate frame from section 6 of
+// https://www.kernel.org/doc/Documentation/serial/n_gsm.txt
+static const uint8_t gsm0710_terminate[] = {
+       0xf9, /* open flag */
+       0x03, /* channel 0 */
+       0xef, /* UIH frame */
+       0x05, /* 2 data bytes */
+       0xc3, /* terminate 1 */
+       0x01, /* terminate 2 */
+       0xf2, /* crc */
+       0xf9, /* close flag */
+};
+
+int fd=0;
+
 void signal_handler(int signum) {
-	printf("cmux daemon exit!");
-	exit(0);
+    int write_count;
+
+    /* terminate gsm 0710 multiplexing on the modem side */
+    write_count = write(fd, gsm0710_terminate, sizeof(gsm0710_terminate));
+    if (write_count != sizeof(gsm0710_terminate))
+        fprintf(stderr, "Failed to terminate gsm multiplexing");
+
+    printf("cmux daemon exit!\n");
+    close(fd);
+    exit(0);
 }
 
 int main(void) {
-	int fd, major;
 	struct termios tty;
 	int ldisc = N_GSM0710, len;
 	struct gsm_config gsm;
