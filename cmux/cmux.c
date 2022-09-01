@@ -37,8 +37,10 @@ OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 #endif
 
 #define SERIAL_PORT	"/dev/ttyS4"
+#define MUXED_AT_CMD_SERIAL_PORT "/dev/gsmtty3"
 #define DEFAULT_SPEED B3000000	//default baudrate
 #define MTU 1428
+#define MODEM_RESET "at+cfun=15\n"
 
 // terminate frame from section 6 of
 // https://www.kernel.org/doc/Documentation/serial/n_gsm.txt
@@ -53,19 +55,10 @@ static const uint8_t gsm0710_terminate[] = {
        0xf9, /* close flag */
 };
 
-int fd=0;
-
 void signal_handler(int signum) {
-    int write_count;
 
-    /* terminate gsm 0710 multiplexing on the modem side */
-    write_count = write(fd, gsm0710_terminate, sizeof(gsm0710_terminate));
-    if (write_count != sizeof(gsm0710_terminate))
-        fprintf(stderr, "Failed to terminate gsm multiplexing");
+    printf("cmux received signal: %d\n", signum);
 
-    printf("cmux daemon exit!\n");
-    close(fd);
-    exit(0);
 }
 
 int main(void) {
@@ -73,6 +66,8 @@ int main(void) {
 	int ldisc = N_GSM0710, len;
 	struct gsm_config gsm;
 	char atbuf[64];
+	int fd=0;
+	int muxed_fd=0;
 
 	/* open the serial port connected to the modem */
 	fd = open(SERIAL_PORT, O_RDWR | O_NOCTTY | O_NDELAY);
@@ -119,7 +114,7 @@ int main(void) {
 
 	len = read(fd, atbuf, sizeof(atbuf) - 1);
 	if (len < 0) {
-		fprintf(stderr, "read " SERIAL_PORT " : %s\n", strerror(errno));
+		fprintf(stderr, "read " SERIAL_PORT " : %d: %s\n", errno, strerror(errno));
 		close(fd);
 		return -1;
 	}
@@ -169,6 +164,24 @@ int main(void) {
 	signal(SIGUSR1, signal_handler);
 
 	pause();
+
+	muxed_fd = open(MUXED_AT_CMD_SERIAL_PORT, O_RDWR | O_NOCTTY | O_NDELAY);
+
+	if (muxed_fd > 0 )
+	{
+	    write(muxed_fd, MODEM_RESET, sizeof(MODEM_RESET));
+
+	    close(muxed_fd);
+	}
+	else
+	    printf("cmux - error opening %s: %s\n", MUXED_AT_CMD_SERIAL_PORT, strerror(errno));
+
+	/* terminate gsm 0710 multiplexing on the modem side */
+	len = write(fd, gsm0710_terminate, sizeof(gsm0710_terminate));
+	if (len != sizeof(gsm0710_terminate))
+	    fprintf(stderr, "Failed to terminate gsm multiplexing");
+
+	printf("cmux daemon exit!\n");
 
 	close(fd);
 	return 0;
