@@ -1,16 +1,16 @@
 /*
-Copyright (c) 2020, Laird Connectivity
-Permission to use, copy, modify, and/or distribute this software for any
-purpose with or without fee is hereby granted, provided that the above
-copyright notice and this permission notice appear in all copies.
-
-THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
-WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
-SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
-WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
-OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
-*/
+ * Copyright (c) 2020, Laird Connectivity
+ * Permission to use, copy, modify, and/or distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+ * SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION
+ * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+ */
 
 #include <stdio.h>
 #include <stdint.h>
@@ -20,13 +20,13 @@ OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 #include <linux/gsmmux.h>
 #include <linux/tty.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <sys/sysmacros.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <poll.h>
 
 //For the moment, cmux won't send any stop command to modem when exits.
 
@@ -36,38 +36,133 @@ OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
 #define GSMIOC_DISABLE_NET     _IO('G', 3)
 #endif
 
-#define SERIAL_PORT	"/dev/ttyS4"
+#define SERIAL_PORT     "/dev/ttyS4"
 #define MUXED_AT_CMD_SERIAL_PORT "/dev/gsmtty3"
-#define DEFAULT_SPEED B3000000	//default baudrate
+#define DEFAULT_SPEED B3000000  //default baudrate
 #define MTU 1428
 #define MODEM_RESET "at+cfun=15\n"
 
 // terminate frame from section 6 of
 // https://www.kernel.org/doc/Documentation/serial/n_gsm.txt
 static const uint8_t gsm0710_terminate[] = {
-       0xf9, /* open flag */
-       0x03, /* channel 0 */
-       0xef, /* UIH frame */
-       0x05, /* 2 data bytes */
-       0xc3, /* terminate 1 */
-       0x01, /* terminate 2 */
-       0xf2, /* crc */
-       0xf9, /* close flag */
+	0xf9,   /* open flag */
+	0x03,   /* channel 0 */
+	0xef,   /* UIH frame */
+	0x05,   /* 2 data bytes */
+	0xc3,   /* terminate 1 */
+	0x01,   /* terminate 2 */
+	0xf2,   /* crc */
+	0xf9,   /* close flag */
 };
 
-void signal_handler(int signum) {
-
-    printf("cmux received signal: %d\n", signum);
-
+void signal_handler(int signum)
+{
+	printf("cmux received signal: %d\n", signum);
 }
 
-int main(void) {
+enum eAction {
+	eContinue,
+	eSuccess,
+	eAbort,
+};
+
+static enum eAction response_process(const char *buf)
+{
+	/* Command successful */
+	if (!strcmp(buf, "OK"))
+		return eSuccess;
+
+	/* Command failed */
+	if (!strncmp(buf, "ERROR", 5)) {
+		fprintf(stderr, "read " SERIAL_PORT " : %s\n", "Modem refused to enter CMUX mode");
+		return eAbort;
+	}
+
+	/* Got something else like URN, echo, or textual response */
+	return eContinue;
+}
+
+static enum eAction modem_response_loop(int fd, enum eAction (*rspProc)(const char *buf))
+{
+	struct pollfd fds;
+	char *ch, *chr;
+	int flags, pollrc, len, off = 0;
+	enum eAction rc = eAbort;
+	char buf[64];
+
+	/* Change file descriptor to non blocking */
+	flags = fcntl(fd, F_GETFL, 0);
+	fcntl(fd, F_SETFL, flags | O_NONBLOCK);
+
+	fds.fd = fd;
+	fds.events = POLLIN;
+	buf[0] = 0;
+
+	for (;;) {
+		/* check if there are more responses in the buffer, sometimes we get multiple at once */
+		ch = strchr(buf, '\n');
+		if (ch) {
+			*ch = 0;
+
+			/* Trim CR from the string end */
+			chr = ch;
+			while (--chr >= buf && *chr == '\r')
+				*chr = 0;
+
+			/* check string responses */
+			rc = rspProc(buf);
+			if (rc != eContinue)
+				break;
+
+			/* shift buffer to remove processed portion */
+			off -= ch - buf - 1;
+			memmove(buf, ch + 1, off + 1);
+			continue;
+		}
+
+		if (off >= sizeof(buf) - 1) {
+			/* buffer is full of something with no LF  */
+			fprintf(stderr, "read " SERIAL_PORT " : %s\n", "Receive buffer overflow");
+			break;
+		}
+
+		pollrc = poll(&fds, 1, 2000);
+		if (pollrc < 0) {
+			/* poll failed or aborted by signal */
+			fprintf(stderr, "poll " SERIAL_PORT " : %s\n", strerror(errno));
+			break;
+		}
+		if (poll == 0) {
+			/* poll timed out */
+			fprintf(stderr, "poll " SERIAL_PORT " : Modem does not reply\n");
+			break;
+		}
+
+		if (fds.revents & POLLIN) {
+			/* have data on the serial port so read them all */
+			len = read(fd, buf + off, sizeof(buf) - 1 - off);
+			if (len < 0) {
+				fprintf(stderr, "read " SERIAL_PORT " : %d: %s\n", errno, strerror(errno));
+				break;
+			}
+			off += len;
+			buf[off] = 0;
+		}
+	}
+
+	/* Change file descriptor back to blocking */
+	fcntl(fd, F_SETFL, flags);
+
+	return rc;
+}
+
+int main(void)
+{
 	struct termios tty;
-	int ldisc = N_GSM0710, len;
 	struct gsm_config gsm;
-	char atbuf[64];
-	int fd=0;
-	int muxed_fd=0;
+	int ldisc = N_GSM0710, len, rc = -1;
+	int fd, muxed_fd;
+	char buf[64];
 
 	/* open the serial port connected to the modem */
 	fd = open(SERIAL_PORT, O_RDWR | O_NOCTTY | O_NDELAY);
@@ -79,8 +174,7 @@ int main(void) {
 	/* configure the serial port : speed, flow control ... */
 	if (-1 == tcgetattr(fd, &tty)) {
 		fprintf(stderr, "tcgetattr : %s\n", strerror(errno));
-		close(fd);
-		return -1;
+		goto exit;
 	}
 
 	tty.c_iflag = tty.c_oflag = tty.c_lflag = 0;
@@ -94,46 +188,30 @@ int main(void) {
 
 	if (-1 == tcsetattr(fd, TCSANOW, &tty)) {
 		fprintf(stderr, "tcsetattr : %s\n", strerror(errno));
-		close(fd);
-		return -1;
+		goto exit;
 	}
 
 	/* send the AT commands to switch the modem to CMUX mode
-	   and check that it's successful (should return OK) */
-	len = snprintf(atbuf, sizeof(atbuf), "AT+CMUX=0,0,,%d\r\n", MTU);
-	if (-1 == write(fd, atbuf, len)) {
+	 * and check that it's successful (should return OK) */
+	len = snprintf(buf, sizeof(buf), "AT+CMUX=0,0,,%u\r\n", MTU);
+	if (-1 == write(fd, buf, len)) {
 		fprintf(stderr, "write " SERIAL_PORT " : %s\n", strerror(errno));
-		close(fd);
-		return -1;
+		goto exit;
 	}
 
-	/* experience showed that some modems need some time before
-	   being able to answer to the first MUX packet so a delay
-	   may be needed here in some case */
-	sleep(1);
-
-	len = read(fd, atbuf, sizeof(atbuf) - 1);
-	if (len < 0) {
-		fprintf(stderr, "read " SERIAL_PORT " : %d: %s\n", errno, strerror(errno));
-		close(fd);
-		return -1;
-	}
-	atbuf[len] = 0;
-
-	if (!strstr(atbuf, "OK")) {
-		fprintf(stderr, "response bogus : %s\n", atbuf);
-		close(fd);
-		return -1;
-	}
+	if (modem_response_loop(fd, response_process) == eAbort)
+		goto exit;
 
 	/* use n_gsm line discipline */
-	ioctl(fd, TIOCSETD, &ldisc);
+	if (ioctl(fd, TIOCSETD, &ldisc) < 0) {
+		fprintf(stderr, "ioctl TIOCSETD : %s\n", strerror(errno));
+		goto exit;
+	}
 
 	/* get n_gsm configuration */
 	if (ioctl(fd, GSMIOC_GETCONF, &gsm) < 0) {
 		fprintf(stderr, "ioctl GSMIOC_GETCONF : %s\n", strerror(errno));
-		close(fd);
-		return -1;
+		goto exit;
 	}
 
 	/* we are initiator and need encoding 0 (basic) */
@@ -151,8 +229,7 @@ int main(void) {
 	/* set the new configuration */
 	if (ioctl(fd, GSMIOC_SETCONF, &gsm) < 0) {
 		fprintf(stderr, "ioctl GSMIOC_SETCONF : %s\n", strerror(errno));
-		close(fd);
-		return -1;
+		goto exit;
 	}
 
 	/* wait to keep the line discipline enabled, wake it up with a signal */
@@ -165,24 +242,24 @@ int main(void) {
 
 	pause();
 
+	rc = 0;
+
 	muxed_fd = open(MUXED_AT_CMD_SERIAL_PORT, O_RDWR | O_NOCTTY | O_NDELAY);
-
-	if (muxed_fd > 0 )
-	{
-	    write(muxed_fd, MODEM_RESET, sizeof(MODEM_RESET));
-
-	    close(muxed_fd);
-	}
-	else
-	    printf("cmux - error opening %s: %s\n", MUXED_AT_CMD_SERIAL_PORT, strerror(errno));
+	if (muxed_fd > 0) {
+		if (write(muxed_fd, MODEM_RESET, sizeof(MODEM_RESET)) != sizeof(MODEM_RESET))
+			fprintf(stderr, "Failed to terminate gsm multiplexing");
+		close(muxed_fd);
+	} else
+		printf("cmux - error opening %s: %s\n", MUXED_AT_CMD_SERIAL_PORT, strerror(errno));
 
 	/* terminate gsm 0710 multiplexing on the modem side */
 	len = write(fd, gsm0710_terminate, sizeof(gsm0710_terminate));
 	if (len != sizeof(gsm0710_terminate))
-	    fprintf(stderr, "Failed to terminate gsm multiplexing");
+		fprintf(stderr, "Failed to terminate gsm multiplexing");
 
 	printf("cmux daemon exit!\n");
 
+exit:
 	close(fd);
-	return 0;
+	return rc;
 }
