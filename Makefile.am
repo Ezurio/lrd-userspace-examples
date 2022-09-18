@@ -8,7 +8,3 @@ endif
 if BUILD_NL_EXAMPLES
 SUBDIRS += nl-examples
 endif
-
-if BUILD_CMUX
-SUBDIRS += cmux
-endif
