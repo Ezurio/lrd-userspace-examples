@@ -2,8 +2,7 @@ from setuptools import setup, Extension
 
 swclient_module = Extension(
     "swclient",
-    include_dirs=["./"],
-    libraries=["swupdate-client"],
+    libraries=["swupdate"],
     sources=["swclient.c"],
 )
 
