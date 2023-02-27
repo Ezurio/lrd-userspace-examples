@@ -577,17 +577,17 @@ static void add_wireless_settings(NMConnection *connection, NMWrapperWirelessSet
 	NMSettingWireless * s_wifi = NULL;
 
 	s_wifi = nm_connection_get_setting_wireless(connection);
-	if(s_wifi)
+	if (s_wifi)
 		nm_connection_remove_setting (connection, G_OBJECT_TYPE (s_wifi));
 
 	s_wifi = (NMSettingWireless *) nm_setting_wireless_new();
 	nm_connection_add_setting (connection, NM_SETTING(s_wifi));
 
-	if(strlen(ws->mode))
+	if (ws->mode[0])
 		g_object_set (s_wifi,
 				NM_SETTING_WIRELESS_MODE, ws->mode, NULL);
 
-	if(strlen(ws->band))
+	if (ws->band[0])
 		g_object_set (s_wifi, NM_SETTING_WIRELESS_BAND, ws->band, NULL);
 
 	str = g_bytes_new(ws->ssid, strlen(ws->ssid));
@@ -609,13 +609,13 @@ static void add_wireless_settings(NMConnection *connection, NMWrapperWirelessSet
 		NM_SETTING_WIRELESS_MAX_SCAN_INTERVAL, ws->max_scan_interval, NULL);
 	g_bytes_unref(str);
 
-	if(strlen(ws->bgscan))
+	if (ws->bgscan[0])
 		g_object_set (s_wifi, NM_SETTING_WIRELESS_BGSCAN, ws->bgscan, NULL);
 
-	if(strlen(ws->frequency_list))
+	if (ws->frequency_list[0])
 		g_object_set (s_wifi, NM_SETTING_WIRELESS_FREQUENCY_LIST, ws->frequency_list, NULL);
 
-	if(strlen(ws->client_name) > 0)
+	if (ws->client_name[0])
 		g_object_set (s_wifi, NM_SETTING_WIRELESS_CLIENT_NAME, ws->client_name, NULL);
 }
 
@@ -695,11 +695,11 @@ int libnm_wrapper_connection_get_wireless_settings(libnm_wrapper_handle hd, cons
 
 static int get_wireless_security_settings_keymgmt_none(NMSettingWirelessSecurity * s_wsec, NMWrapperWirelessSecuritySettings *wss)
 {
-	int i=0;
+	int i = 0;
 	const char *ptr = NULL;
 
 	wss->wep_tx_keyidx = nm_setting_wireless_security_get_wep_tx_keyidx(s_wsec);
-	for(i=0; i<4; i++)
+	for(i = 0; i < 4; i++)
 	{
 		ptr = nm_setting_wireless_security_get_wep_key(s_wsec, i);
 		safe_strncpy(wss->wepkey[i], ptr, LIBNM_WRAPPER_MAX_NAME_LEN);
@@ -717,9 +717,9 @@ static int set_wireless_security_settings_keymgmt_none(NMSettingWirelessSecurity
 		NM_SETTING_WIRELESS_SECURITY_WEP_KEY_TYPE, NM_WEP_KEY_TYPE_KEY, NULL);
 
 
-	for(i=0; i<4; i++)
+	for (i = 0; i < 4; i++)
 	{
-		if(strlen(wss->wepkey[i]))
+		if (wss->wepkey[i][0])
 		{
 			nm_setting_wireless_security_set_wep_key(s_wsec, i, wss->wepkey[i]);
 		}
@@ -739,7 +739,7 @@ static int get_wireless_security_settings_keymgmt_psk(NMSettingWirelessSecurity 
 
 static int set_wireless_security_settings_keymgmt_psk(NMSettingWirelessSecurity * s_wsec, NMWrapperWirelessSecuritySettings *wss)
 {
-	if(strlen(wss->psk))
+	if (wss->psk[0])
 		g_object_set(s_wsec, NM_SETTING_WIRELESS_SECURITY_PSK, wss->psk, NULL);
 
 	return LIBNM_WRAPPER_ERR_SUCCESS;
@@ -760,10 +760,10 @@ static int get_wireless_security_settings_keymgmt_ieee8021x(NMSettingWirelessSec
 
 static int set_wireless_security_settings_keymgmt_ieee8021x(NMSettingWirelessSecurity * s_wsec, NMWrapperWirelessSecuritySettings *wss)
 {
-	if(strlen(wss->leap_username))
+	if (wss->leap_username[0])
 		g_object_set (s_wsec, NM_SETTING_WIRELESS_SECURITY_LEAP_USERNAME, wss->leap_username, NULL);
 
-	if(strlen(wss->leap_password))
+	if (wss->leap_password[0])
 		g_object_set (s_wsec, NM_SETTING_WIRELESS_SECURITY_LEAP_PASSWORD, wss->leap_password, NULL);
 
 	return LIBNM_WRAPPER_ERR_SUCCESS;
@@ -777,7 +777,7 @@ static int get_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 	NMSetting8021x *s_8021x = NULL;
 
 	s_8021x = nm_connection_get_setting_802_1x(connection);
-	if(!s_8021x)
+	if (!s_8021x)
 		return LIBNM_WRAPPER_ERR_FAIL;
 
 	wxs->auth_timeout = nm_setting_802_1x_get_auth_timeout(s_8021x);
@@ -933,9 +933,6 @@ static int get_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 	ptr = nm_setting_802_1x_get_pin(s_8021x);
 	safe_strncpy(wxs->pin, ptr, LIBNM_WRAPPER_MAX_NAME_LEN);
 
-	ptr = nm_setting_802_1x_get_tls_disable_time_checks(s_8021x);
-	safe_strncpy(wxs->tls_disable_time_checks, ptr, LIBNM_WRAPPER_MAX_NAME_LEN);
-
 	return LIBNM_WRAPPER_ERR_SUCCESS;
 }
 
@@ -958,7 +955,7 @@ int libnm_wrapper_connection_get_wireless_security_settings(libnm_wrapper_handle
 	NMSettingWirelessSecurity * s_wsec = NULL;
 	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
 
-	if(id)
+	if (id)
 		conn = NM_CONNECTION(nm_client_get_connection_by_id(client, id));
 	else
 		conn = NM_CONNECTION(get_active_connection(client, interface));
@@ -966,11 +963,11 @@ int libnm_wrapper_connection_get_wireless_security_settings(libnm_wrapper_handle
 	nm_wrapper_assert(conn, LIBNM_WRAPPER_ERR_INVALID_CONFIG)
 
 	s_wsec = nm_connection_get_setting_wireless_security(conn);
-	if(!s_wsec)
+	if (!s_wsec)
 		return LIBNM_WRAPPER_ERR_INVALID_WEP_TYPE;
 
 	nums = nm_setting_wireless_security_get_num_groups(s_wsec);
-	for(i=0; i<nums; i++)
+	for (i = 0; i < nums; i++)
 	{
 		ptr = nm_setting_wireless_security_get_group(s_wsec, i);
 		strncat(wss->group, ptr, LIBNM_WRAPPER_MAX_NAME_LEN);
@@ -979,7 +976,7 @@ int libnm_wrapper_connection_get_wireless_security_settings(libnm_wrapper_handle
 	}
 
 	nums = nm_setting_wireless_security_get_num_protos(s_wsec);
-	for(i=0; i<nums; i++)
+	for (i = 0; i < nums; i++)
 	{
 		ptr = nm_setting_wireless_security_get_proto(s_wsec, i);
 		strncat(wss->proto, ptr, LIBNM_WRAPPER_MAX_NAME_LEN);
@@ -988,7 +985,7 @@ int libnm_wrapper_connection_get_wireless_security_settings(libnm_wrapper_handle
 	}
 
 	nums = nm_setting_wireless_security_get_num_pairwise(s_wsec);
-	for(i=0; i<nums; i++)
+	for (i = 0; i < nums; i++)
 	{
 		ptr = nm_setting_wireless_security_get_pairwise(s_wsec, i);
 		strncat(wss->pairwise, ptr, LIBNM_WRAPPER_MAX_NAME_LEN);
@@ -1003,7 +1000,7 @@ int libnm_wrapper_connection_get_wireless_security_settings(libnm_wrapper_handle
 
 	ptr = nm_setting_wireless_security_get_key_mgmt(s_wsec);
 	safe_strncpy(wss->key_mgmt, ptr, LIBNM_WRAPPER_MAX_NAME_LEN);
-	if(ptr)
+	if (ptr)
 	{
 		ret = get_wireless_security_settings_keymgmt_none(s_wsec, wss);
 		if(ret == LIBNM_WRAPPER_ERR_SUCCESS)
@@ -1020,7 +1017,7 @@ int libnm_wrapper_connection_get_wireless_security_settings(libnm_wrapper_handle
 static void cert_to_utf8_path(int scheme, char *cert, char *outbuf, int len)
 {
 	snprintf(outbuf, len, "%s", cert);
-	if(scheme == NM_SETTING_802_1X_CK_SCHEME_PATH)
+	if (scheme == NM_SETTING_802_1X_CK_SCHEME_PATH)
 	{
 		gsize bytes_read, bytes_written;
 		gchar *file = NULL;
@@ -1049,7 +1046,7 @@ static int set_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 	NMSetting8021x *s_8021x = nm_connection_get_setting_802_1x(connection);
 	GError *err = NULL;
 
-	if(!s_8021x)
+	if (!s_8021x)
 	{
 		s_8021x = (NMSetting8021x *) nm_setting_802_1x_new();
 		nm_connection_add_setting(connection, NM_SETTING(s_8021x));
@@ -1060,13 +1057,14 @@ static int set_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 		NM_SETTING_802_1X_PHASE1_AUTH_FLAGS, wxs->p1_auth_flags,
 		NM_SETTING_802_1X_SYSTEM_CA_CERTS, wxs->system_ca_certs, NULL);
 
-	if(strlen(wxs->ca_cert))
+	if (wxs->ca_cert[0])
 	{
 
 		cert_to_utf8_path(wxs->ca_cert_scheme, wxs->ca_cert, buf, LIBNM_WRAPPER_MAX_PATH_LEN);
 
-		if(FALSE == nm_setting_802_1x_set_ca_cert(s_8021x, buf, wxs->ca_cert_scheme, NULL, &err)){
-			if(err)
+		if (FALSE == nm_setting_802_1x_set_ca_cert(s_8021x, buf, wxs->ca_cert_scheme, NULL, &err))
+		{
+			if (err)
 			{
 				g_error_free (err);
 				return LIBNM_WRAPPER_ERR_INVALID_CONFIG;
@@ -1075,10 +1073,11 @@ static int set_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 		}
 	}
 
-	if(strlen(wxs->cli_cert))
+	if (wxs->cli_cert[0])
 	{
 		cert_to_utf8_path(wxs->cli_cert_scheme, wxs->cli_cert, buf, LIBNM_WRAPPER_MAX_PATH_LEN);
-		if(FALSE == nm_setting_802_1x_set_client_cert(s_8021x, buf, wxs->cli_cert_scheme, NULL, &err)){
+		if (FALSE == nm_setting_802_1x_set_client_cert(s_8021x, buf, wxs->cli_cert_scheme, NULL, &err))
+		{
 			if(err)
 			{
 				g_error_free (err);
@@ -1088,26 +1087,25 @@ static int set_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 		}
 	}
 
-	if(strlen(wxs->p2_ca_cert))
+	if (wxs->p2_ca_cert[0])
 	{
 		cert_to_utf8_path(wxs->p2_ca_cert_scheme, wxs->p2_ca_cert, buf, LIBNM_WRAPPER_MAX_PATH_LEN);
 		if(FALSE == nm_setting_802_1x_set_phase2_ca_cert(s_8021x, buf, wxs->p2_ca_cert_scheme, NULL, NULL))
 			return ret;
 	}
 
-	if(strlen(wxs->p2_cli_cert))
+	if (wxs->p2_cli_cert[0])
 	{
 		cert_to_utf8_path(wxs->p2_cli_cert_scheme, wxs->p2_cli_cert, buf, LIBNM_WRAPPER_MAX_PATH_LEN);
-		if(FALSE == nm_setting_802_1x_set_phase2_client_cert(s_8021x, buf, wxs->p2_cli_cert_scheme, NULL, NULL))
+		if (FALSE == nm_setting_802_1x_set_phase2_client_cert(s_8021x, buf, wxs->p2_cli_cert_scheme, NULL, NULL))
 			return ret;
 	}
 
-	if(strlen(wxs->private_key))
+	if (wxs->private_key[0])
 	{
 		cert_to_utf8_path(wxs->private_key_scheme, wxs->private_key, buf, LIBNM_WRAPPER_MAX_PATH_LEN);
-		if(FALSE == nm_setting_802_1x_set_private_key(s_8021x, buf, wxs->private_key_password, wxs->private_key_scheme, NULL, &err)){
-			if(err)
-			{
+		if (FALSE == nm_setting_802_1x_set_private_key(s_8021x, buf, wxs->private_key_password, wxs->private_key_scheme, NULL, &err)) {
+			if(err) {
 				g_error_free (err);
 				return LIBNM_WRAPPER_ERR_INVALID_CONFIG;
 			}
@@ -1115,108 +1113,94 @@ static int set_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 		}
 	}
 
-	if(strlen(wxs->p2_private_key))
+	if (wxs->p2_private_key[0])
 	{
 		cert_to_utf8_path(wxs->p2_private_key_scheme, wxs->p2_private_key, buf, LIBNM_WRAPPER_MAX_PATH_LEN);
 		if(FALSE == nm_setting_802_1x_set_phase2_private_key(s_8021x, buf, wxs->p2_private_key_password, wxs->p2_private_key_scheme, NULL, NULL))
 			return ret;
 	}
 
-	if(strlen(wxs->ca_cert_password))
+	if (wxs->ca_cert_password[0])
 	{
 		g_object_set (s_8021x, NM_SETTING_802_1X_CA_CERT_PASSWORD, wxs->ca_cert_password, NULL);
 	}
 
-	if(strlen(wxs->ca_path))
+	if (wxs->ca_path[0])
 	{
 		gchar *file = string_to_utf8(wxs->ca_path);
-		if(!file) return ret;
+		if (!file) return ret;
 		g_object_set(s_8021x, NM_SETTING_802_1X_CA_PATH, file, NULL);
 		g_free(file);
 	}
 
-	if(strlen(wxs->p2_ca_path))
+	if (wxs->p2_ca_path[0])
 	{
 		gchar *file = string_to_utf8(wxs->p2_ca_path);
-		if(!file) return ret;
+		if (!file) return ret;
 		g_object_set(s_8021x, NM_SETTING_802_1X_PHASE2_CA_PATH, file, NULL);
 		g_free(file);
 	}
 
-	if(strlen(wxs->pac_file))
+	if (wxs->pac_file[0])
 	{
 		gchar *file = string_to_utf8(wxs->pac_file);
-		if(!file) return ret;
+		if (!file) return ret;
 		g_object_set(s_8021x, NM_SETTING_802_1X_PAC_FILE, file, NULL);
 		g_free(file);
 	}
 
-	if(strlen(wxs->pac_file_password))
-	{
+	if (wxs->pac_file_password[0])
 		g_object_set(s_8021x, NM_SETTING_802_1X_PAC_FILE_PASSWORD, wxs->pac_file_password, NULL);
-	}
 
-	if(strlen(wxs->ca_path))
+	if (wxs->ca_path[0])
 	{
 		g_object_set(s_8021x, NM_SETTING_802_1X_CA_PATH, wxs->ca_path, NULL);
 	}
 
-	if(strlen(wxs->p2_ca_path))
-	{
+	if (wxs->p2_ca_path[0])
 		g_object_set(s_8021x, NM_SETTING_802_1X_PHASE2_CA_PATH, wxs->p2_ca_path, NULL);
-	}
 
-	if(strlen(wxs->cli_cert_password))
-	{
+	if (wxs->cli_cert_password[0])
 		g_object_set(s_8021x, NM_SETTING_802_1X_PHASE2_CLIENT_CERT_PASSWORD, wxs->cli_cert_password, NULL);
-	}
 
 	nums = nm_setting_802_1x_get_num_eap_methods(s_8021x);
 	nm_setting_802_1x_clear_eap_methods(s_8021x);
-	if(strlen(wxs->eap))
+	if (wxs->eap[0])
 	{
 		char *methods = wxs->eap;
-		char *tokens = strtok(methods," ");
-		while( tokens != NULL )
+		char *tokens = strtok(methods, " ");
+		while (tokens != NULL )
 		{
 			nm_setting_802_1x_add_eap_method(s_8021x, tokens);
-			tokens = strtok(NULL," ");
+			tokens = strtok(NULL, " ");
 		}
 	}
 
-	if(strlen(wxs->identity))
+	if (wxs->identity[0])
 		g_object_set(s_8021x, NM_SETTING_802_1X_IDENTITY, wxs->identity, NULL);
 
-	if(strlen(wxs->anonymous))
+	if (wxs->anonymous[0])
 		g_object_set(s_8021x, NM_SETTING_802_1X_ANONYMOUS_IDENTITY, wxs->anonymous, NULL);
 
-	if(strlen(wxs->password))
+	if (wxs->password[0])
 		g_object_set(s_8021x, NM_SETTING_802_1X_PASSWORD, wxs->password, NULL);
 
-	if(strlen(wxs->p1_peapver))
-	{
+	if (wxs->p1_peapver[0])
 		g_object_set(s_8021x, NM_SETTING_802_1X_PHASE1_PEAPVER, wxs->p1_peapver, NULL);
-	}
 
-
-	if(strlen(wxs->p1_fast_provisioning))
-	{
+	if(wxs->p1_fast_provisioning[0])
 		g_object_set(s_8021x, NM_SETTING_802_1X_PHASE1_FAST_PROVISIONING, wxs->p1_fast_provisioning, NULL);
-	}
 
-
-	if(strlen(wxs->p1_peaplabel))
-	{
+	if (wxs->p1_peaplabel[0])
 		g_object_set(s_8021x, NM_SETTING_802_1X_PHASE1_PEAPLABEL, wxs->p1_peaplabel, NULL);
-	}
 
 	nums = nm_setting_802_1x_get_num_phase2_auths(s_8021x);
-	for(i=0; i<nums; i++)
+	for (i=0; i<nums; i++)
 	{
 		nm_setting_802_1x_remove_phase2_auth(s_8021x, i);
 	}
 
-	if(strlen(wxs->p2_auth))
+	if (wxs->p2_auth[0])
 	{
 		char *methods = wxs->p2_auth;
 		char *tokens = strtok(methods," ");
@@ -1228,40 +1212,35 @@ static int set_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 	}
 
 	nums = nm_setting_802_1x_get_num_phase2_autheaps(s_8021x);
-	for(i=0; i<nums; i++)
+	for (i=0; i<nums; i++)
 	{
 		nm_setting_802_1x_remove_phase2_autheap(s_8021x, i);
 	}
 
-	if(strlen(wxs->p2_autheap))
+	if (wxs->p2_autheap[0])
 	{
 		char *methods = wxs->p2_autheap;
-		char *tokens = strtok(methods," ");
-		while( tokens != NULL )
+		char *tokens = strtok(methods, " ");
+		while (tokens != NULL)
 		{
 			nm_setting_802_1x_add_phase2_autheap(s_8021x, tokens);
-			tokens = strtok(NULL," ");
+			tokens = strtok(NULL, " ");
 		}
 	}
 
-	if(strlen(wxs->p2_ca_cert_password))
+	if (wxs->p2_ca_cert_password[0])
 	{
-		g_object_set(s_8021x,  	NM_SETTING_802_1X_PHASE2_CA_CERT_PASSWORD, wxs->p2_ca_cert_password, NULL);
+		g_object_set(s_8021x, NM_SETTING_802_1X_PHASE2_CA_CERT_PASSWORD, wxs->p2_ca_cert_password, NULL);
 	}
 
-	if(strlen(wxs->p2_cli_cert_password))
+	if (wxs->p2_cli_cert_password[0])
 	{
-		g_object_set(s_8021x,  	NM_SETTING_802_1X_PHASE2_CLIENT_CERT_PASSWORD, wxs->p2_cli_cert_password, NULL);
+		g_object_set(s_8021x, NM_SETTING_802_1X_PHASE2_CLIENT_CERT_PASSWORD, wxs->p2_cli_cert_password, NULL);
 	}
 
-	if(strlen(wxs->pin))
+	if (wxs->pin[0])
 	{
-		g_object_set(s_8021x,  	NM_SETTING_802_1X_PIN, wxs->pin, NULL);
-	}
-
-	if(strlen(wxs->tls_disable_time_checks))
-	{
-		g_object_set(s_8021x, NM_SETTING_802_1X_TLS_DISABLE_TIME_CHECKS, wxs->tls_disable_time_checks, NULL);
+		g_object_set(s_8021x, NM_SETTING_802_1X_PIN, wxs->pin, NULL);
 	}
 
 	return LIBNM_WRAPPER_ERR_SUCCESS;
@@ -1273,18 +1252,18 @@ static int add_wireless_security_settings(NMConnection *connection, NMWrapperWir
 	NMSettingWirelessSecurity * s_wsec = NULL;
 
 	s_wsec = nm_connection_get_setting_wireless_security(connection);
-	if(s_wsec)
+	if (s_wsec)
 	{
 		NMSetting8021x *s_8021x = nm_connection_get_setting_802_1x(connection);
 		if(s_8021x)
 			nm_connection_remove_setting(connection, G_OBJECT_TYPE(s_8021x));
-		nm_connection_remove_setting (connection, G_OBJECT_TYPE(s_wsec));
+		nm_connection_remove_setting(connection, G_OBJECT_TYPE(s_wsec));
 	}
 
 	s_wsec = (NMSettingWirelessSecurity *)nm_setting_wireless_security_new();
 	nm_connection_add_setting(connection, NM_SETTING (s_wsec));
 
-	if(strlen(wss->group))
+	if (wss->group[0])
 	{
 		GStrv v = g_strsplit(wss->group, " ", -1);
 		nm_setting_wireless_security_clear_groups(s_wsec);
@@ -1292,7 +1271,7 @@ static int add_wireless_security_settings(NMConnection *connection, NMWrapperWir
 		g_strfreev(v);
 	}
 
-	if(strlen(wss->proto))
+	if (wss->proto[0])
 	{
 		GStrv v = g_strsplit(wss->proto, " ", -1);
 		nm_setting_wireless_security_clear_protos(s_wsec);
@@ -1300,7 +1279,7 @@ static int add_wireless_security_settings(NMConnection *connection, NMWrapperWir
 		g_strfreev(v);
 	}
 
-	if(strlen(wss->pairwise))
+	if (wss->pairwise[0])
 	{
 		GStrv v = g_strsplit(wss->pairwise, " ", -1);
 		nm_setting_wireless_security_clear_pairwise(s_wsec);
@@ -1312,7 +1291,7 @@ static int add_wireless_security_settings(NMConnection *connection, NMWrapperWir
 			NM_SETTING_WIRELESS_SECURITY_AUTH_ALG, wss->auth_alg,
 			NM_SETTING_WIRELESS_SECURITY_KEY_MGMT, wss->key_mgmt, NULL);
 
-	if(strlen(wss->proactive_key_caching))
+	if (wss->proactive_key_caching[0])
 		g_object_set (s_wsec, NM_SETTING_WIRELESS_SECURITY_PROACTIVE_KEY_CACHING, wss->proactive_key_caching, NULL);
 
 	ret = set_wireless_security_settings_keymgmt_none(s_wsec, wss);
@@ -1320,7 +1299,7 @@ static int add_wireless_security_settings(NMConnection *connection, NMWrapperWir
 		ret = set_wireless_security_settings_keymgmt_psk(s_wsec, wss);
 	if(ret == LIBNM_WRAPPER_ERR_SUCCESS)
 		ret = set_wireless_security_settings_keymgmt_ieee8021x(s_wsec, wss);
-	if(ret == LIBNM_WRAPPER_ERR_SUCCESS && strlen(wxs->eap))
+	if(ret == LIBNM_WRAPPER_ERR_SUCCESS && wxs->eap[0])
 		ret = set_wireless_security_settings_keymgmt_eap(connection, wxs);
 
 	return ret;
@@ -1345,7 +1324,7 @@ int libnm_wrapper_connection_add_wireless_connection(libnm_wrapper_handle hd, NM
 	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
 
 	remote = nm_client_get_connection_by_id (client, s->id);
-	if(remote)
+	if (remote)
 		return LIBNM_WRAPPER_ERR_INVALID_PARAMETER;
 
 	connection = nm_simple_connection_new();
@@ -1354,14 +1333,14 @@ int libnm_wrapper_connection_add_wireless_connection(libnm_wrapper_handle hd, NM
 
 	add_wireless_settings(connection, ws);
 
-	if(strlen(wss->key_mgmt))
+	if (wss->key_mgmt[0])
 	{
 		if(LIBNM_WRAPPER_ERR_SUCCESS != add_wireless_security_settings(connection, wss, wxs))
 			return LIBNM_WRAPPER_ERR_INVALID_PARAMETER;
 	}
 
 	nm_connection_normalize(connection, NULL, NULL, &err);
-	if(err)
+	if (err)
 	{
 		g_error_free (err);
 		return LIBNM_WRAPPER_ERR_INVALID_CONFIG;
@@ -1398,21 +1377,21 @@ int libnm_wrapper_connection_update_wireless_connection(libnm_wrapper_handle hd,
 
 	add_wireless_settings(connection, ws);
 
-	if(strlen(wss->key_mgmt))
+	if (wss->key_mgmt[0])
 	{
 		if(LIBNM_WRAPPER_ERR_SUCCESS != add_wireless_security_settings(connection, wss, wxs))
 			return LIBNM_WRAPPER_ERR_INVALID_PARAMETER;
 	}
 
 	nm_connection_normalize(NM_CONNECTION(remote), NULL, NULL, &err);
-	if(err)
+	if (err)
 	{
 		g_error_free (err);
 		return LIBNM_WRAPPER_ERR_INVALID_CONFIG;
 	}
 
 	nm_remote_connection_commit_changes(remote, TRUE, NULL, &err);
-	if(err)
+	if (err)
 	{
 		g_error_free (err);
 		return LIBNM_WRAPPER_ERR_FAIL;
@@ -1449,10 +1428,10 @@ static void add_wired_settings(NMConnection *connection, NMWrapperWiredSettings 
 		NM_SETTING_WIRED_AUTO_NEGOTIATE, ws->auto_negotiate,
 		NM_SETTING_WIRED_WAKE_ON_LAN, ws->wol, NULL);
 
-	if(strlen(ws->duplex))
+	if (ws->duplex[0])
 		g_object_set (s_wired, NM_SETTING_WIRED_DUPLEX, ws->duplex, NULL);
 
-	if(strlen(ws->wol_password))
+	if (ws->wol_password[0])
 		g_object_set (s_wired, NM_SETTING_WIRED_WAKE_ON_LAN_PASSWORD, ws->wol_password, NULL);
 }
 
@@ -1721,7 +1700,7 @@ int libnm_wrapper_get_active_ipv4_addresses(libnm_wrapper_handle hd, const char 
 
 	const char * active_gateway = nm_ip_config_get_gateway(ip4);
 
-	if (strlen(active_gateway) > 0 && gateway != NULL)
+	if (active_gateway[0] && gateway != NULL)
 		safe_strncpy(gateway,active_gateway,gateway_len);
 
 	const char *const* active_dns_addresses = nm_ip_config_get_nameservers(ip4);
@@ -1902,17 +1881,17 @@ int libnm_wrapper_ipv4_set_address(libnm_wrapper_handle hd, const char *id, cons
 
 	addr = nm_setting_ip_config_get_address(s_ip4, index);
 
-	if(address && strlen(address))
+	if (address && address[0])
 		nm_ip_address_set_address(addr, address);
 
-	if(netmask && strlen(netmask))
+	if (netmask && netmask[0])
 	{
 		int prefix = atoi(netmask);
 		if(prefix > 0 && prefix < 32)
 			nm_ip_address_set_prefix(addr, atoi(netmask));
 	}
 
-	if(gateway && strlen(gateway))
+	if (gateway && gateway[0])
 		g_object_set (G_OBJECT(NM_SETTING(s_ip4)), NM_SETTING_IP_CONFIG_GATEWAY, gateway, NULL);
 
 	if(FALSE == nm_connection_verify(NM_CONNECTION(remote), &err))
@@ -2031,38 +2010,38 @@ int libnm_wrapper_ipv6_set_address(libnm_wrapper_handle hd, const char *id, cons
 	nm_wrapper_assert(remote, LIBNM_WRAPPER_ERR_INVALID_PARAMETER)
 
 	s_ip6 = nm_connection_get_setting_ip6_config(NM_CONNECTION(remote));
-	if(!s_ip6)
+	if (!s_ip6)
 		return LIBNM_WRAPPER_ERR_INVALID_CONFIG;
 
 	//Force to "manual" method to set ip address
 	g_object_set (G_OBJECT(NM_SETTING(s_ip6)), NM_SETTING_IP_CONFIG_METHOD, "manual", NULL);
 
-	if(nm_setting_ip_config_get_num_addresses(s_ip6) == 0)
+	if (nm_setting_ip_config_get_num_addresses(s_ip6) == 0)
 	{
 		addr = nm_ip_address_new(AF_INET6, "::", 128, NULL);
 		nm_setting_ip_config_add_address(s_ip6, addr);
 		nm_ip_address_unref(addr);
 	}
 
-	if(index >= nm_setting_ip_config_get_num_addresses(s_ip6))
+	if (index >= nm_setting_ip_config_get_num_addresses(s_ip6))
 		return LIBNM_WRAPPER_ERR_INVALID_CONFIG;
 
 	addr = nm_setting_ip_config_get_address(s_ip6, index);
 
-	if(address && strlen(address))
+	if (address && address[0])
 		nm_ip_address_set_address(addr, address);
 
-	if(netmask && strlen(netmask))
+	if (netmask && netmask[0])
 	{
 		int prefix = atoi(netmask);
 		if(prefix > 0)
 			nm_ip_address_set_prefix(addr, prefix);
 	}
 
-	if(gateway && strlen(gateway))
+	if (gateway && gateway[0])
 		g_object_set(G_OBJECT(NM_SETTING(s_ip6)), NM_SETTING_IP_CONFIG_GATEWAY, gateway, NULL);
 
-	if(FALSE == nm_remote_connection_commit_changes(remote, TRUE, NULL, NULL))
+	if (FALSE == nm_remote_connection_commit_changes(remote, TRUE, NULL, NULL))
 			return LIBNM_WRAPPER_ERR_FAIL;
 
 	return ret;

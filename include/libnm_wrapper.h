@@ -40,7 +40,7 @@ typedef struct _NMWrapperSettings {
 	char    id[LIBNM_WRAPPER_MAX_NAME_LEN];
 	char    uuid[LIBNM_WRAPPER_MAX_UUID_LEN];
 	char    interface[LIBNM_WRAPPER_MAX_NAME_LEN];
-}NMWrapperSettings;
+} NMWrapperSettings;
 
 static inline void NMWrapperSettings_init(NMWrapperSettings *s)
 {
@@ -57,7 +57,7 @@ typedef struct _NMWrapperWiredSettings {
     int auto_negotiate;
 	char duplex[LIBNM_WRAPPER_MAX_NAME_LEN];
 	char wol_password[LIBNM_WRAPPER_MAX_NAME_LEN];
-}NMWrapperWiredSettings;
+} NMWrapperWiredSettings;
 
 static inline void NMWrapperWiredSettings_init(NMWrapperWiredSettings *ws)
 {
@@ -66,28 +66,28 @@ static inline void NMWrapperWiredSettings_init(NMWrapperWiredSettings *ws)
 }
 
 typedef struct _NMWrapperWirelessSettings {
-	int 	hidden;
-	int		rate;
-	int		tx_power;
-	int		powersave;
-	int 	channel;
-	int 	wow;
-	int     ccx;
-	int 	scan_delay;
-	int		scan_dwell;
-	int		scan_passive_dwell;
-	int 	scan_suspend_time;
-	int 	scan_roam_delta;
-	int		auth_timeout;
-	int		frequency_dfs;
-	int		max_scan_interval;
-	char 	mode[LIBNM_WRAPPER_MAX_NAME_LEN];
-	char 	frequency_list[LIBNM_WRAPPER_MAX_FREQUENCY_LIST_LEN];
-	char 	bgscan[LIBNM_WRAPPER_MAX_NAME_LEN];
-	char	ssid[LIBNM_WRAPPER_MAX_NAME_LEN];
-	char	client_name[LIBNM_WRAPPER_MAX_NAME_LEN];
-	char 	band[LIBNM_WRAPPER_MAX_NAME_LEN];
-}NMWrapperWirelessSettings;
+	int  hidden;
+	int  rate;
+	int  tx_power;
+	int  powersave;
+	int  channel;
+	int  wow;
+	int  ccx;
+	int  scan_delay;
+	int  scan_dwell;
+	int  scan_passive_dwell;
+	int  scan_suspend_time;
+	int  scan_roam_delta;
+	int  auth_timeout;
+	int  frequency_dfs;
+	int  max_scan_interval;
+	char mode[LIBNM_WRAPPER_MAX_NAME_LEN];
+	char frequency_list[LIBNM_WRAPPER_MAX_FREQUENCY_LIST_LEN];
+	char bgscan[LIBNM_WRAPPER_MAX_NAME_LEN];
+	char ssid[LIBNM_WRAPPER_MAX_NAME_LEN];
+	char client_name[LIBNM_WRAPPER_MAX_NAME_LEN];
+	char band[LIBNM_WRAPPER_MAX_NAME_LEN];
+} NMWrapperWirelessSettings;
 
 static inline void NMWrapperWirelessSettings_init(NMWrapperWirelessSettings *ws)
 {
@@ -115,7 +115,7 @@ typedef struct _NMWrapperWirelessSecuritySettings{
 	char wepkey[4][LIBNM_WRAPPER_MAX_NAME_LEN];
 	char psk[LIBNM_WRAPPER_MAX_NAME_LEN];
 	char proactive_key_caching[LIBNM_WRAPPER_MAX_NAME_LEN];
-}NMWrapperWirelessSecuritySettings;
+} NMWrapperWirelessSecuritySettings;
 
 static inline void NMWrapperWirelessSecuritySettings_init(NMWrapperWirelessSecuritySettings *wss)
 {
@@ -168,9 +168,8 @@ typedef struct _NMWrapperWireless8021xSettings {
 	char private_key[LIBNM_WRAPPER_MAX_PATH_LEN];
 	char private_key_password[LIBNM_WRAPPER_MAX_NAME_LEN];
 	char pin[LIBNM_WRAPPER_MAX_NAME_LEN];
-	char tls_disable_time_checks[LIBNM_WRAPPER_MAX_NAME_LEN];
 	char pac_file_password[LIBNM_WRAPPER_MAX_NAME_LEN];
-}NMWrapperWireless8021xSettings;
+} NMWrapperWireless8021xSettings;
 
 static inline void NMWrapperWireless8021xSettings_init(NMWrapperWireless8021xSettings *wxs)
 {
@@ -208,7 +207,7 @@ typedef struct _NMWrapperIPRoute {
 	uint32_t pad;
 	int64_t metric;
 	char dest[LIBNM_WRAPPER_MAX_NAME_LEN];
-}NMWrapperIPRoute;
+} NMWrapperIPRoute;
 
 /**
  * @name library management APIs
