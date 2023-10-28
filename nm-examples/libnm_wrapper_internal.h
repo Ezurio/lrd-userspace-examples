@@ -12,7 +12,7 @@ extern "C" {
 
 static inline void ssid_gbytes_to_string(GBytes *src, char *dst, int len)
 {
-	const char *ptr = nm_utils_ssid_to_utf8(g_bytes_get_data(src, NULL),
+	char *ptr = nm_utils_ssid_to_utf8(g_bytes_get_data(src, NULL),
 			g_bytes_get_size(src));
 	safe_strncpy(dst, ptr, len);
 	g_free(ptr);

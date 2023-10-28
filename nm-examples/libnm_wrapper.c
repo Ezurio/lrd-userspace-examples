@@ -884,9 +884,9 @@ static int get_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 	for(int i=0; i<nums; i++)
 	{
 		ptr = nm_setting_802_1x_get_eap_method(s_8021x, i);
-		strncat(wxs->eap, ptr, LIBNM_WRAPPER_MAX_NAME_LEN);
+		g_strlcat(wxs->eap, ptr, LIBNM_WRAPPER_MAX_NAME_LEN);
 		if(i != (nums-1))
-			strncat(wxs->eap, " ", LIBNM_WRAPPER_MAX_NAME_LEN);
+			g_strlcat(wxs->eap, " ", LIBNM_WRAPPER_MAX_NAME_LEN);
 	}
 
 	ptr = nm_setting_802_1x_get_identity(s_8021x);
@@ -920,18 +920,18 @@ static int get_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 	for(i=0; i<nums; i++)
 	{
 		ptr = nm_setting_802_1x_get_phase2_auth(s_8021x, i);
-		strncat(wxs->p2_auth, ptr, LIBNM_WRAPPER_MAX_NAME_LEN);
+		g_strlcat(wxs->p2_auth, ptr, LIBNM_WRAPPER_MAX_NAME_LEN);
 		if(i != (nums-1))
-			strncat(wxs->p2_auth, " ", LIBNM_WRAPPER_MAX_NAME_LEN);
+			g_strlcat(wxs->p2_auth, " ", LIBNM_WRAPPER_MAX_NAME_LEN);
 	}
 
 	nums = nm_setting_802_1x_get_num_phase2_autheaps(s_8021x);
 	for(i=0; i<nums; i++)
 	{
 		ptr = nm_setting_802_1x_get_phase2_autheap(s_8021x, i);
-		strncat(wxs->p2_autheap, ptr, LIBNM_WRAPPER_MAX_NAME_LEN);
+		g_strlcat(wxs->p2_autheap, ptr, LIBNM_WRAPPER_MAX_NAME_LEN);
 		if(i != (nums-1))
-			strncat(wxs->p2_autheap, " ", LIBNM_WRAPPER_MAX_NAME_LEN);
+			g_strlcat(wxs->p2_autheap, " ", LIBNM_WRAPPER_MAX_NAME_LEN);
 	}
 
 	if(wxs->p2_ca_cert_scheme == NM_SETTING_802_1X_CK_SCHEME_PATH)
@@ -1038,27 +1038,27 @@ int libnm_wrapper_connection_get_wireless_security_settings(libnm_wrapper_handle
 	for (i = 0; i < nums; i++)
 	{
 		ptr = nm_setting_wireless_security_get_group(s_wsec, i);
-		strncat(wss->group, ptr, LIBNM_WRAPPER_MAX_NAME_LEN);
+		g_strlcat(wss->group, ptr, LIBNM_WRAPPER_MAX_NAME_LEN);
 		if(i != (nums-1))
-			strncat(wss->group, " ", LIBNM_WRAPPER_MAX_NAME_LEN);
+			g_strlcat(wss->group, " ", LIBNM_WRAPPER_MAX_NAME_LEN);
 	}
 
 	nums = nm_setting_wireless_security_get_num_protos(s_wsec);
 	for (i = 0; i < nums; i++)
 	{
 		ptr = nm_setting_wireless_security_get_proto(s_wsec, i);
-		strncat(wss->proto, ptr, LIBNM_WRAPPER_MAX_NAME_LEN);
+		g_strlcat(wss->proto, ptr, LIBNM_WRAPPER_MAX_NAME_LEN);
 		if(i != (nums-1))
-			strncat(wss->proto, " ", LIBNM_WRAPPER_MAX_NAME_LEN);
+			g_strlcat(wss->proto, " ", LIBNM_WRAPPER_MAX_NAME_LEN);
 	}
 
 	nums = nm_setting_wireless_security_get_num_pairwise(s_wsec);
 	for (i = 0; i < nums; i++)
 	{
 		ptr = nm_setting_wireless_security_get_pairwise(s_wsec, i);
-		strncat(wss->pairwise, ptr, LIBNM_WRAPPER_MAX_NAME_LEN);
+		g_strlcat(wss->pairwise, ptr, LIBNM_WRAPPER_MAX_NAME_LEN);
 		if(i != (nums-1))
-			strncat(wss->pairwise, " ", LIBNM_WRAPPER_MAX_NAME_LEN);
+			g_strlcat(wss->pairwise, " ", LIBNM_WRAPPER_MAX_NAME_LEN);
 	}
 
 	ptr = nm_setting_wireless_security_get_auth_alg(s_wsec);
