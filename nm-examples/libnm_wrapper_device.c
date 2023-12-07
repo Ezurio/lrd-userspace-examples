@@ -33,24 +33,24 @@ int libnm_wrapper_device_get_status(libnm_wrapper_handle hd, const char *interfa
 		return LIBNM_WRAPPER_ERR_NO_HARDWARE;
 
 	status->autoconnect = false;
-	if( nm_device_get_autoconnect(dev))
+	if (nm_device_get_autoconnect(dev))
 		status->autoconnect = true;
 
 	status->state = nm_device_get_state(dev);
 
 	ptr = nm_device_get_hw_address(dev);
-	if(ptr)
+	if (ptr)
 		nm_utils_hwaddr_aton(ptr, status->mac, LIBNM_WRAPPER_MAX_MAC_ADDR_LEN);
 
 	s_ip = nm_device_get_ip4_config(dev);
-	if(s_ip)
+	if (s_ip)
 	{
 		num_ips = 0;
 		ptr_array = nm_ip_config_get_addresses(s_ip);
-		if(ptr_array)
+		if (ptr_array)
 			num_ips = MIN(ptr_array->len, LIBNM_WRAPPER_MAX_ADDR_NUM);
 
-		for(int i=0; i < num_ips; i++)
+		for (int i=0; i < num_ips; i++)
 		{
 			NMIPAddress *a = g_ptr_array_index (ptr_array, i);
 			safe_strncpy(status->addr[i], nm_ip_address_get_address(a), LIBNM_WRAPPER_MAX_NAME_LEN);
@@ -58,13 +58,14 @@ int libnm_wrapper_device_get_status(libnm_wrapper_handle hd, const char *interfa
 	}
 
 	s_ip = nm_device_get_ip6_config(dev);
-	if(s_ip)
+	if (s_ip)
 	{
 		num_ips = 0;
 		ptr_array = nm_ip_config_get_addresses(s_ip);
-		if(ptr_array)
+		if (ptr_array)
 			num_ips = MIN(ptr_array->len, LIBNM_WRAPPER_MAX_ADDR_NUM);
-		for(int i=0; i < num_ips; i++)
+
+		for (int i=0; i < num_ips; i++)
 		{
 			NMIPAddress *a = g_ptr_array_index (ptr_array, i);
 			safe_strncpy(status->addr6[i], nm_ip_address_get_address(a), LIBNM_WRAPPER_MAX_NAME_LEN);
@@ -82,11 +83,12 @@ int libnm_wrapper_device_get_status(libnm_wrapper_handle hd, const char *interfa
  *
  * Returns: LIBNM_WRAPPER_ERR_SUCCESS if successful
  */
-int libnm_wrapper_device_set_autoconnect(libnm_wrapper_handle hd, const char *interface, bool autoconnect)
+int libnm_wrapper_device_set_autoconnect(libnm_wrapper_handle hd,
+	const char *interface, bool autoconnect)
 {
 	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
 	NMDevice *dev = nm_client_get_device_by_iface(client, interface);
-	if(!dev)
+	if (!dev)
 		return LIBNM_WRAPPER_ERR_NO_HARDWARE;
 
 	nm_device_set_autoconnect(dev, autoconnect);
@@ -102,33 +104,40 @@ int libnm_wrapper_device_set_autoconnect(libnm_wrapper_handle hd, const char *in
  *
  * Returns: LIBNM_WRAPPER_ERR_SUCCESS if successful
  */
-int libnm_wrapper_device_get_autoconnect(libnm_wrapper_handle hd, const char *interface, bool *autoconnect)
+int libnm_wrapper_device_get_autoconnect(libnm_wrapper_handle hd,
+	const char *interface, bool *autoconnect)
 {
 	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
 	NMDevice *dev = nm_client_get_device_by_iface(client, interface);
-	if(!dev)
+
+	if (!dev)
 		return LIBNM_WRAPPER_ERR_NO_HARDWARE;
 
 	*autoconnect = false;
-	if( nm_device_get_autoconnect(dev))
+	if (nm_device_get_autoconnect(dev))
 		*autoconnect = true;
 
 	return LIBNM_WRAPPER_ERR_SUCCESS;
 }
 
 /**
- * Disconnects the device if currently connected, and prevents the device from automatically connecting to networks until the next manual network connection request..
+ * Disconnects the device if currently connected, and prevents the device
+ * from automatically connecting to networks until the next manual network
+ * connection request..
  * @param hd: library handle
  * @param interface: which device
  *
  * Returns: LIBNM_WRAPPER_ERR_SUCCESS if successful
  */
-int libnm_wrapper_device_disconnect(libnm_wrapper_handle hd, const char *interface)
+int libnm_wrapper_device_disconnect(libnm_wrapper_handle hd,
+	const char *interface)
 {
 	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
 	NMDevice * dev = nm_client_get_device_by_iface(client, interface);
-	if(TRUE == nm_device_disconnect(dev, NULL, NULL))
+
+	if (TRUE == nm_device_disconnect(dev, NULL, NULL))
 		return LIBNM_WRAPPER_ERR_SUCCESS;
+
 	return LIBNM_WRAPPER_ERR_FAIL;
 }
 
@@ -146,12 +155,14 @@ int libnm_wrapper_device_enable_wireless(libnm_wrapper_handle hd , bool enable)
 	bool processed;
 
 	nm_client_wireless_set_enabled(client, enable);
-	// Ensure state change is reflected in nm_client_wireless_get_enabled() before returning
+	// Ensure state change is reflected in nm_client_wireless_get_enabled()
+	// before returning
 	do {
 		processed = g_main_context_iteration(NULL, FALSE);
 		state = nm_client_wireless_get_enabled(client);
 		if (state != enable && !processed) {
-			// Yield if there were no events ready to be processed and state has not yet changed
+			// Yield if there were no events ready to be processed and state
+			// has not yet changed
 			usleep(50*1000);
 		}
 	} while ((state != enable) && (count++ < 200));
@@ -225,9 +236,8 @@ int libnm_wrapper_device_get_state_reason(libnm_wrapper_handle hd, const char *i
  * @param user: user callback function
  * Returns: LIBNM_WRAPPER_ERR_SUCCESS if successful
  */
-
 static void device_state (NMDevice *dev, GParamSpec *pspec,
-						LIBNM_WRAPPER_STATE_MONITOR_CALLBACK_ST *user)
+	LIBNM_WRAPPER_STATE_MONITOR_CALLBACK_ST *user)
 {
 	int state = nm_device_get_state (dev);
 	int reason = nm_device_get_state_reason(dev);
@@ -237,7 +247,7 @@ static void device_state (NMDevice *dev, GParamSpec *pspec,
 }
 
 int libnm_wrapper_device_state_monitor(libnm_wrapper_handle hd, const char *interface,
-									LIBNM_WRAPPER_STATE_MONITOR_CALLBACK_ST *user)
+	LIBNM_WRAPPER_STATE_MONITOR_CALLBACK_ST *user)
 {
 	GMainLoop *loop;
 	GError *error = NULL;

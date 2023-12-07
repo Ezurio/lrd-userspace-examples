@@ -1,6 +1,5 @@
 #!/bin/sh
 
-case `uname` in Darwin*) glibtoolize --copy ;;
-  *) libtoolize --copy ;; esac
+autoreconf --install
 
-aclocal && autoheader && automake --add-missing && autoreconf
+./configure $@
