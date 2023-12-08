@@ -226,7 +226,7 @@ typedef struct _NMWrapperIPRoute {
  * Returns: pointer to library handle
  *          NULL if unsuccessful
  */
-libnm_wrapper_handle libnm_wrapper_init();
+libnm_wrapper_handle libnm_wrapper_init(void);
 
 /**
  * Destroy library handle.

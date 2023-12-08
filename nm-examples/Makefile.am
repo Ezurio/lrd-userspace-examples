@@ -6,7 +6,7 @@ bin_PROGRAMS = nm_device_status nm_device_status_monitor
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = libnm_wrapper.pc
 
-AM_CFLAGS = $(GLIB_CFLAGS) $(LIBNM_CFLAGS) -I../include/
+AM_CFLAGS = -Wall $(GLIB_CFLAGS) $(LIBNM_CFLAGS) -I../include/
 LDADD = libnm_wrapper.la $(GLIB_LIBS) $(LIBNM_LIBS)
 
 libnm_wrapper_la_LDFLAGS = -version-info 0:0:0

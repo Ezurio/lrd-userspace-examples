@@ -36,20 +36,22 @@ typedef struct _LIBNM_WRAPPER_STATE_MONITOR_CALLBACK_ST
 {
 	int (*callback)(int state, int reason);
 	void *arg;
-}LIBNM_WRAPPER_STATE_MONITOR_CALLBACK_ST;
+} LIBNM_WRAPPER_STATE_MONITOR_CALLBACK_ST;
 
-static inline void safe_strncpy(char *dest, const char *src, int n)
+static inline void safe_strncpy(char *dest, const char *src, size_t n)
 {
-	size_t i, m = src ? strlen(src) : 0;
+	size_t m;
 
-	m = m > n ? n : m;
+	if (n == 0)
+		return;
 
-	for (i = 0; i < m; i++)
-		dest[i] = src[i];
+	m = src ? strlen(src) : 0;
+	m = m > (n - 1) ? (n - 1) : m;
 
-	///A null byte will be added
-	if(i < n) dest[i] = '\0';
-	else  dest[n-1] = '\0';
+	memcpy(dest, src, m);
+
+	// A null byte will be added
+	dest[m] = '\0';
 }
 
 #ifdef __cplusplus

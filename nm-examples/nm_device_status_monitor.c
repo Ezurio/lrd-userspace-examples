@@ -112,7 +112,6 @@ int cb_print_state_reason(int state, int reason)
 int main (int argc, char *argv[])
 {
 	char dev[32];
-	int state = 0, reason = 0;
 	libnm_wrapper_handle hd;
 	LIBNM_WRAPPER_STATE_MONITOR_CALLBACK_ST cb;
 
@@ -125,7 +124,7 @@ int main (int argc, char *argv[])
 
 	cb.callback = &cb_print_state_reason;
 
-	reason = libnm_wrapper_device_state_monitor(hd, dev, &cb);
+	libnm_wrapper_device_state_monitor(hd, dev, &cb);
 
 	libnm_wrapper_destroy(hd);
 

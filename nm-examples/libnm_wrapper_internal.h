@@ -23,10 +23,7 @@ static inline void ssid_gbytes_to_string(GBytes *src, char *dst, int len)
 typedef struct _libnm_wrapper_handle_st
 {
 	NMClient *client;
-}libnm_wrapper_handle_st;
-
-libnm_wrapper_handle libnm_wrapper_init();
-void libnm_wrapper_destroy(libnm_wrapper_handle hd);
+} libnm_wrapper_handle_st;
 
 #ifdef __cplusplus
 }
