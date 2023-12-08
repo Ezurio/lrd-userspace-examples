@@ -42,7 +42,7 @@ libnm_wrapper_handle_st *st = NULL;
  * Returns: pointer to library handle
  *          NULL if unsuccessful
  */
-libnm_wrapper_handle libnm_wrapper_init()
+libnm_wrapper_handle libnm_wrapper_init(void)
 {
 	int i;
 
@@ -490,21 +490,8 @@ static void active_connection_state_cb (NMActiveConnection *active,
 	return;
 }
 
-static gboolean activate_connection_timeout_cb (gpointer user_data)
-{
-	libnm_wrapper_cb_st *temp = (libnm_wrapper_cb_st *)user_data;
-
-	if(!temp)
-		return FALSE;
-
-	activate_finish(temp, LIBNM_WRAPPER_ERR_FAIL, true);
-
-	return FALSE;
-}
-
 static void activated_cb (GObject *client, GAsyncResult *result, gpointer user_data)
 {
-	int timeout = 20;
 	GError *error = NULL;
 	libnm_wrapper_cb_st *temp = (libnm_wrapper_cb_st *)user_data;
 	GMainLoop *loop = temp->loop;
@@ -553,7 +540,6 @@ int libnm_wrapper_activate_connection(libnm_wrapper_handle hd, const char *inter
 	int ret = LIBNM_WRAPPER_ERR_FAIL;
 	NMDevice * dev = NULL;
 	NMRemoteConnection *remote = NULL;
-	const char * specific_object = NULL;
 	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
 	remote = nm_client_get_connection_by_id (client, id);
 	nm_wrapper_assert(remote, LIBNM_WRAPPER_ERR_INVALID_PARAMETER)
@@ -832,7 +818,6 @@ static int get_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 {
 	int i, nums, flags;
 	const char *ptr = NULL;
-	GBytes *bptr = NULL;
 	NMSetting8021x *s_8021x = NULL;
 
 	s_8021x = nm_connection_get_setting_802_1x(connection);
@@ -1178,7 +1163,7 @@ static int set_wireless_security_settings_keymgmt_eap(NMConnection *connection, 
 		// Do not update private key password field if none is provided
 		// This leaves existing secret in place with the assumption it is (or has been) provided at another time if needed
 		// Password will be provided if used when key is initially set but not on subsequent updates with current implementation
-		if (!wxs->private_key_password || strlen(wxs->private_key_password) <= 0)
+		if (!wxs->private_key_password[0])
 			pPwd = NULL;
 
 		if(FALSE == nm_setting_802_1x_set_private_key(s_8021x, buf, pPwd, wxs->private_key_scheme, NULL, &err)){
@@ -1962,14 +1947,14 @@ int libnm_wrapper_ipv4_set_address(libnm_wrapper_handle hd, const char *id, cons
 	//Force to "manual" method to set ip address
 	g_object_set (G_OBJECT(NM_SETTING(s_ip4)), NM_SETTING_IP_CONFIG_METHOD, "manual", NULL);
 
-	if(nm_setting_ip_config_get_num_addresses(s_ip4) == 0)
+	if (nm_setting_ip_config_get_num_addresses(s_ip4) == 0)
 	{
 		addr = nm_ip_address_new(AF_INET, "192.168.1.1", 24, NULL);
 		nm_setting_ip_config_add_address(s_ip4, addr);
 		nm_ip_address_unref(addr);
 	}
 
-	if(index >= nm_setting_ip_config_get_num_addresses(s_ip4))
+	if (index >= nm_setting_ip_config_get_num_addresses(s_ip4))
 		return LIBNM_WRAPPER_ERR_INVALID_CONFIG;
 
 	addr = nm_setting_ip_config_get_address(s_ip4, index);
@@ -1987,7 +1972,7 @@ int libnm_wrapper_ipv4_set_address(libnm_wrapper_handle hd, const char *id, cons
 	if (gateway && gateway[0])
 		g_object_set (G_OBJECT(NM_SETTING(s_ip4)), NM_SETTING_IP_CONFIG_GATEWAY, gateway, NULL);
 
-	if(FALSE == nm_connection_verify(NM_CONNECTION(remote), &err))
+	if (FALSE == nm_connection_verify(NM_CONNECTION(remote), &err))
 	{
 		g_error_free (err);
 		return LIBNM_WRAPPER_ERR_INVALID_CONFIG;
@@ -1999,7 +1984,9 @@ int libnm_wrapper_ipv4_set_address(libnm_wrapper_handle hd, const char *id, cons
 	return LIBNM_WRAPPER_ERR_SUCCESS;
 }
 
-int libnm_wrapper_ipv4_set_all_addresses(libnm_wrapper_handle hd, const char *id, const int index, const char *address, const char *netmask, const char *gateway, const char* dns)
+int libnm_wrapper_ipv4_set_all_addresses(libnm_wrapper_handle hd,
+	const char *id, const int index, const char *address,
+	const char *netmask, const char *gateway, const char* dns)
 {
 	GError *err = NULL;
 	NMIPAddress *addr;
@@ -2014,52 +2001,59 @@ int libnm_wrapper_ipv4_set_all_addresses(libnm_wrapper_handle hd, const char *id
 	nm_wrapper_assert(remote, LIBNM_WRAPPER_ERR_INVALID_PARAMETER)
 
 	s_ip4 = nm_connection_get_setting_ip4_config(NM_CONNECTION(remote));
-	if(!s_ip4)
+	if (!s_ip4)
 		return LIBNM_WRAPPER_ERR_INVALID_CONFIG;
 
 	//Force to "manual" method to set ip address
 	g_object_set (G_OBJECT(NM_SETTING(s_ip4)), NM_SETTING_IP_CONFIG_METHOD, "manual", NULL);
 
-	if(nm_setting_ip_config_get_num_addresses(s_ip4) == 0)
+	if (nm_setting_ip_config_get_num_addresses(s_ip4) == 0)
 	{
 		addr = nm_ip_address_new(AF_INET, "192.168.1.1", 24, NULL);
 		nm_setting_ip_config_add_address(s_ip4, addr);
 		nm_ip_address_unref(addr);
 	}
 
-	if(index >= nm_setting_ip_config_get_num_addresses(s_ip4))
+	if (index >= nm_setting_ip_config_get_num_addresses(s_ip4))
 		return LIBNM_WRAPPER_ERR_INVALID_CONFIG;
 
 	addr = nm_setting_ip_config_get_address(s_ip4, index);
 
-	if(address && strlen(address))
+	if (address && address[0])
 		nm_ip_address_set_address(addr, address);
 
-	if(netmask && strlen(netmask))
-	{ 
+	if (netmask && netmask[0])
+	{
 		int prefix = atoi(netmask);
 		if(prefix > 0 && prefix < 32)
 			nm_ip_address_set_prefix(addr, atoi(netmask));
 	}
 
-	if(gateway && strlen(gateway))
+	if (gateway && gateway[0])
 		g_object_set (G_OBJECT(NM_SETTING(s_ip4)), NM_SETTING_IP_CONFIG_GATEWAY, gateway, NULL);
 
 	nm_setting_ip_config_clear_dns(s_ip4);
-	if(dns){
+	if (dns && dns[0])
+	{
 		char * tokens;
-		tokens = strtok(dns," ");
-		while( tokens != NULL )
+		char * dns_copy = strdup(dns);
+		if (!dns_copy)
+			return LIBNM_WRAPPER_ERR_FAIL;
+
+		tokens = strtok(dns_copy, " ");
+		while (tokens)
 		{
-			if(nm_utils_ipaddr_valid(AF_INET, tokens) == FALSE)
+			if (!nm_utils_ipaddr_valid(AF_INET, tokens))
 				return LIBNM_WRAPPER_ERR_INVALID_PARAMETER;
-			if(FALSE == nm_setting_ip_config_add_dns(s_ip4, tokens))
+			if (!nm_setting_ip_config_add_dns(s_ip4, tokens))
 				return LIBNM_WRAPPER_ERR_FAIL;
+
 			tokens = strtok(NULL," ");
 		}
+		free(dns_copy);
 	}
 
-	if(FALSE == nm_connection_verify(NM_CONNECTION(remote), &err))
+	if (FALSE == nm_connection_verify(NM_CONNECTION(remote), &err))
 	{
 		g_error_free (err);
 		return LIBNM_WRAPPER_ERR_INVALID_CONFIG;
@@ -2075,7 +2069,6 @@ int libnm_wrapper_ipv4_set_all_addresses(libnm_wrapper_handle hd, const char *id
 
 	return result;
 }
-
 
 int libnm_wrapper_ipv4_get_address_num(libnm_wrapper_handle hd, const char *id, int *num)
 {
@@ -2094,7 +2087,9 @@ int libnm_wrapper_ipv4_get_address_num(libnm_wrapper_handle hd, const char *id, 
 	return LIBNM_WRAPPER_ERR_SUCCESS;
 }
 
-int libnm_wrapper_ipv4_get_address(libnm_wrapper_handle hd, const char *id, const int index, char *address, int address_len, char *netmask, int netmask_len, char *gateway, int gateway_len)
+int libnm_wrapper_ipv4_get_address(libnm_wrapper_handle hd, const char *id,
+	const int index, char *address, int address_len, char *netmask,
+	int netmask_len, char *gateway, int gateway_len)
 {
 	NMSettingIPConfig *s_ip4;
 	NMRemoteConnection *remote = NULL;
