@@ -250,7 +250,6 @@ int libnm_wrapper_device_state_monitor(libnm_wrapper_handle hd, const char *inte
 	LIBNM_WRAPPER_STATE_MONITOR_CALLBACK_ST *user)
 {
 	GMainLoop *loop;
-	GError *error = NULL;
 	NMClient *client = ((libnm_wrapper_handle_st *)hd)->client;
 	NMDevice *dev = nm_client_get_device_by_iface(client, interface);
 	g_signal_connect (dev, "notify::" NM_DEVICE_STATE, G_CALLBACK (device_state), user);
