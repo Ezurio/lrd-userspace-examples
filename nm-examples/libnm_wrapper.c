@@ -1046,6 +1046,8 @@ int libnm_wrapper_connection_get_wireless_security_settings(libnm_wrapper_handle
 			g_strlcat(wss->pairwise, " ", LIBNM_WRAPPER_MAX_NAME_LEN);
 	}
 
+	wss->pmf = nm_setting_wireless_security_get_pmf(s_wsec);
+
 	ptr = nm_setting_wireless_security_get_auth_alg(s_wsec);
 	safe_strncpy(wss->auth_alg, ptr, LIBNM_WRAPPER_MAX_NAME_LEN);
 	ptr = nm_setting_wireless_security_get_proactive_key_caching(s_wsec);
@@ -1362,6 +1364,8 @@ static int add_wireless_security_settings(NMConnection *connection, NMWrapperWir
 
 	if (wss->proactive_key_caching[0])
 		g_object_set (s_wsec, NM_SETTING_WIRELESS_SECURITY_PROACTIVE_KEY_CACHING, wss->proactive_key_caching, NULL);
+	
+	g_object_set (s_wsec, NM_SETTING_WIRELESS_SECURITY_PMF, wss->pmf, NULL);
 
 	ret = set_wireless_security_settings_keymgmt_none(s_wsec, wss);
 	if(ret == LIBNM_WRAPPER_ERR_SUCCESS)
