@@ -1,5 +1,5 @@
 AC_PREREQ([2.69])
-AC_INIT([lrd-examples], 1.0.0, [support@lairdconnect.com])
+AC_INIT([lrd-examples], 1.0.0, [support@ezurio.com])
 AM_INIT_AUTOMAKE
 AC_CONFIG_MACRO_DIRS([m4])
 
