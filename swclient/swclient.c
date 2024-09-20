@@ -116,8 +116,8 @@ static PyObject * read_progress_ipc(PyObject *self, PyObject *args)
 	/* Read from the IPC channel */
 	rc = progress_ipc_receive(&msg_fd, &msg);
 	if (rc <= 0) {
-		PyErr_SetString(PyExc_RuntimeError, "read_progress_ipc: could not read from IPC channel");
-		return NULL;
+		/* Empty or invalid message - return a status of -1 to alert the calling Python function */
+		return Py_BuildValue("iIIIss", -1, 0, 0, 0, "", "");
 	}
 
 	/* Return the message result to the caller */
