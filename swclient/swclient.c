@@ -8,6 +8,7 @@
  * The library wraps swupdate client APIs
  */
 
+#include <fcntl.h>
 #include <progress_ipc.h>
 #include <network_ipc.h>
 
@@ -77,10 +78,21 @@ static PyObject * end_fw_update(PyObject *self, PyObject *args)
 	Py_RETURN_NONE;
 }
 
-static PyObject * open_progress_ipc(PyObject *self, PyObject *Py_UNUSED(ignored))
+static PyObject * open_progress_ipc(PyObject *self, PyObject *args)
 {
+	int non_blocking = 0;
+
+	if (!PyArg_ParseTuple(args, "|i", &non_blocking)) {
+		PyErr_SetString(PyExc_RuntimeError, "open_progress_ipc: PyArg_ParseTuple failed");
+		return NULL;
+	}
+
 	/* Open IPC channel file descriptor */
 	int msg_fd = progress_ipc_connect(false);
+
+	/* Set the IPC channel file descriptor to non-blocking mode, if enabled */
+	if (non_blocking)
+		fcntl(msg_fd, F_SETFL, O_NONBLOCK);
 
 	return Py_BuildValue("i", msg_fd);
 }
@@ -139,7 +151,7 @@ static PyMethodDef swclient_methods[] =
 	{ "prepare_fw_update",	prepare_fw_update,  METH_VARARGS, "Prepare to update firmware"	     },
 	{ "do_fw_update",	do_fw_update,	    METH_VARARGS, "Do firmware update"		     },
 	{ "end_fw_update",	end_fw_update,	    METH_VARARGS, "End firmware update"		     },
-	{ "open_progress_ipc",	open_progress_ipc,  METH_NOARGS,  "Open progress IPC connection"     },
+	{ "open_progress_ipc",	open_progress_ipc,  METH_VARARGS,  "Open progress IPC connection"     },
 	{ "read_progress_ipc",	read_progress_ipc,  METH_VARARGS, "Read progress via IPC connection" },
 	{ "close_progress_ipc", close_progress_ipc, METH_VARARGS, "Close progress IPC connection"    },
 	{ NULL,			NULL,		    0,		  NULL				     }
