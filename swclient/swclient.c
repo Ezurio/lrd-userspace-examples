@@ -91,8 +91,10 @@ static PyObject * open_progress_ipc(PyObject *self, PyObject *args)
 	int msg_fd = progress_ipc_connect(false);
 
 	/* Set the IPC channel file descriptor to non-blocking mode, if enabled */
-	if (non_blocking)
-		fcntl(msg_fd, F_SETFL, O_NONBLOCK);
+	if (non_blocking) {
+		int flags = fcntl(msg_fd, F_GETFL, 0);
+		fcntl(msg_fd, F_SETFL, flags | O_NONBLOCK);
+	}
 
 	return Py_BuildValue("i", msg_fd);
 }
@@ -151,7 +153,7 @@ static PyMethodDef swclient_methods[] =
 	{ "prepare_fw_update",	prepare_fw_update,  METH_VARARGS, "Prepare to update firmware"	     },
 	{ "do_fw_update",	do_fw_update,	    METH_VARARGS, "Do firmware update"		     },
 	{ "end_fw_update",	end_fw_update,	    METH_VARARGS, "End firmware update"		     },
-	{ "open_progress_ipc",	open_progress_ipc,  METH_VARARGS,  "Open progress IPC connection"     },
+	{ "open_progress_ipc",	open_progress_ipc,  METH_VARARGS, "Open progress IPC connection"     },
 	{ "read_progress_ipc",	read_progress_ipc,  METH_VARARGS, "Read progress via IPC connection" },
 	{ "close_progress_ipc", close_progress_ipc, METH_VARARGS, "Close progress IPC connection"    },
 	{ NULL,			NULL,		    0,		  NULL				     }
