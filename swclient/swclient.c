@@ -9,10 +9,14 @@
  */
 
 #include <fcntl.h>
+#include <errno.h>
 #include <progress_ipc.h>
 #include <network_ipc.h>
 
 #include <Python.h>
+
+static size_t msg_buf[sizeof(struct progress_msg)] = { 0 };
+static int partial_msg_length = 0;
 
 static PyObject * prepare_fw_update(PyObject *self, PyObject *args)
 {
@@ -96,6 +100,9 @@ static PyObject * open_progress_ipc(PyObject *self, PyObject *args)
 		fcntl(msg_fd, F_SETFL, flags | O_NONBLOCK);
 	}
 
+	/* Reset the partial message length */
+	partial_msg_length = 0;
+
 	return Py_BuildValue("i", msg_fd);
 }
 
@@ -116,9 +123,29 @@ static PyObject * read_progress_ipc(PyObject *self, PyObject *args)
 	}
 
 	/* Read from the IPC channel */
-	rc = progress_ipc_receive(&msg_fd, &msg);
-	if (rc <= 0) {
+	rc = read(msg_fd, &msg_buf + partial_msg_length, sizeof(msg) - partial_msg_length);
+	if ((rc == -1 && (errno == EAGAIN || errno == EINTR)) ||
+		rc == 0) {
 		/* Empty or invalid message - return a status of -1 to alert the calling Python function */
+		return Py_BuildValue("iIIIss", -1, 0, 0, 0, "", "");
+	}
+
+	if (rc != (sizeof(msg) - partial_msg_length)) {
+		/* Partial message received - return a status of -1 to alert the calling Python function and
+		*  and update the partial message length for the next read
+		*/
+		partial_msg_length += rc;
+		return Py_BuildValue("iIIIss", -1, 0, 0, 0, "", "");
+	}
+
+	/* Copy the message from the buffer */
+	memcpy(&msg, msg_buf, sizeof(msg));
+
+	/* Reset the partial message length */
+	partial_msg_length = 0;
+
+	if (msg.apiversion != PROGRESS_API_VERSION) {
+		/* API version mismatch - return a status of -1 to alert the calling Python function */
 		return Py_BuildValue("iIIIss", -1, 0, 0, 0, "", "");
 	}
 
@@ -144,6 +171,9 @@ static PyObject * close_progress_ipc(PyObject *self, PyObject *args)
 
 	/* Close the IPC channel connection */
 	ipc_end(msg_fd);
+
+	/* Reset the partial message length */
+	partial_msg_length = 0;
 
 	Py_RETURN_NONE;
 }
