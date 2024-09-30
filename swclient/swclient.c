@@ -16,7 +16,7 @@
 #include <Python.h>
 
 static size_t msg_buf[sizeof(struct progress_msg)] = { 0 };
-static int partial_msg_length = 0;
+static size_t partial_msg_length = 0;
 
 static PyObject * prepare_fw_update(PyObject *self, PyObject *args)
 {
@@ -130,7 +130,7 @@ static PyObject * read_progress_ipc(PyObject *self, PyObject *args)
 		return Py_BuildValue("iIIIss", -1, 0, 0, 0, "", "");
 	}
 
-	if (rc != (sizeof(msg) - partial_msg_length)) {
+	if (rc != (ssize_t)((sizeof(msg) - partial_msg_length))) {
 		/* Partial message received - return a status of -1 to alert the calling Python function and
 		*  and update the partial message length for the next read
 		*/
@@ -144,10 +144,12 @@ static PyObject * read_progress_ipc(PyObject *self, PyObject *args)
 	/* Reset the partial message length */
 	partial_msg_length = 0;
 
+#ifdef PROGRESS_API_VERSION
 	if (msg.apiversion != PROGRESS_API_VERSION) {
 		/* API version mismatch - return a status of -1 to alert the calling Python function */
 		return Py_BuildValue("iIIIss", -1, 0, 0, 0, "", "");
 	}
+#endif
 
 	/* Return the message result to the caller */
 	return Py_BuildValue("iIIIss", msg.status, msg.nsteps, msg.cur_step,
